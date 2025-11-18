@@ -25,7 +25,6 @@ import {
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
 import { Toolbar } from "./Toolbar";
-import { FloatingToolbar } from "./FloatingToolbar";
 
 export const Editor: React.FC<EditorProps> = ({
     initialContent,
@@ -774,23 +773,13 @@ export const Editor: React.FC<EditorProps> = ({
                 className={toolbarClassName}
             />
             <div
-                className="rte-editor-wrapper"
-                style={{ position: "relative" }}
-            >
-                <div
-                    ref={editorRef}
-                    contentEditable
-                    className={`rte-editor ${editorClassName || ""}`}
-                    data-placeholder={placeholder}
-                    onPaste={handlePaste}
-                    suppressContentEditableWarning
-                />
-                <FloatingToolbar
-                    plugins={plugins}
-                    editorAPI={editorAPI}
-                    editorElement={editorRef.current}
-                />
-            </div>
+                ref={editorRef}
+                contentEditable
+                className={`rte-editor ${editorClassName || ""}`}
+                data-placeholder={placeholder}
+                onPaste={handlePaste}
+                suppressContentEditableWarning
+            />
         </div>
     );
 };

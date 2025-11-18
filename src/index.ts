@@ -1,6 +1,5 @@
 export { Editor } from './components/Editor';
 export { Toolbar } from './components/Toolbar';
-export { FloatingToolbar } from './components/FloatingToolbar';
 export { Dropdown } from './components/Dropdown';
 export * from './types';
 export * from './plugins';

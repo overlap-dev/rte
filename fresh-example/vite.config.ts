@@ -12,7 +12,6 @@ export default defineConfig({
       "react": "preact/compat",
       "react-dom": "preact/compat",
       "react/jsx-runtime": "preact/jsx-runtime",
-      "@iconify/react": "@iconify-icon/preact",
     },
   },
 });

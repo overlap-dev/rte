@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { IconWrapper } from './IconWrapper';
+import { Icon } from './Icons';
 
 interface DropdownProps {
     icon: string;
@@ -54,7 +54,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 title={label}
                 aria-label={label}
             >
-                <IconWrapper icon={icon} width={18} height={18} />
+                <Icon icon={icon} width={18} height={18} />
                 {currentOption && (
                     <span className="rte-dropdown-value">{currentOption.label}</span>
                 )}
@@ -89,7 +89,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                                     {option.headingPreview === 'p' ? 'Normal' : option.headingPreview.toUpperCase()}
                                 </span>
                             )}
-                            {option.icon && <IconWrapper icon={option.icon} width={16} height={16} />}
+                            {option.icon && <Icon icon={option.icon} width={16} height={16} />}
                             <span style={{ flex: 1, fontWeight: currentValue === option.value ? 600 : 400 }}>
                                 {option.label}
                             </span>

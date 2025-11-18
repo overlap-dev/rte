@@ -40,7 +40,6 @@ export default [
             return (
                 id === "react" ||
                 id === "react-dom" ||
-                id === "@iconify/react" ||
                 id.startsWith("react/") ||
                 id.startsWith("react-dom/")
             );
@@ -54,7 +53,6 @@ export default [
             return (
                 id === "react" ||
                 id === "react-dom" ||
-                id === "@iconify/react" ||
                 id.startsWith("react/") ||
                 id.startsWith("react-dom/")
             );

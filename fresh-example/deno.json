@@ -25,8 +25,7 @@
         "tailwindcss": "npm:tailwindcss@^4.1.10",
         "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.12",
         "react": "npm:preact@^10.27.2/compat",
-        "react-dom": "npm:preact@^10.27.2/compat",
-        "@iconify-icon/preact": "npm:@iconify-icon/preact@^1.2.2"
+        "react-dom": "npm:preact@^10.27.2/compat"
     },
     "compilerOptions": {
         "lib": ["dom", "dom.asynciterable", "dom.iterable", "deno.ns"],

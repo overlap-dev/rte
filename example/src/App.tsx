@@ -41,6 +41,30 @@ function App() {
         }
     };
 
+    const handleImageUpload = async (file: File): Promise<string> => {
+        // Beispiel: Data URL für Demo-Zwecke
+        // In einer echten Anwendung würdest du hier die Datei zu deinem Backend hochladen:
+        //
+        // const formData = new FormData();
+        // formData.append('image', file);
+        // const response = await fetch('/api/upload', {
+        //     method: 'POST',
+        //     body: formData,
+        // });
+        // const data = await response.json();
+        // return data.url; // URL des hochgeladenen Bildes
+
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target?.result as string;
+                resolve(dataUrl);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
     return (
         <div style={{ padding: "40px", maxWidth: "800px", margin: "0 auto" }}>
             <h1>HENDRIKS-RTE Beispiel</h1>
@@ -94,6 +118,7 @@ function App() {
                 fontSizes={[12, 14, 16, 18, 20, 24]}
                 colors={["#000000", "#ff0000", "#0000ff", "#00aa00", "#ffaa00"]}
                 headings={["h1", "h2", "h3"]}
+                onImageUpload={handleImageUpload}
             />
 
             {/* HTML Output */}

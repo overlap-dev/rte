@@ -130,12 +130,6 @@
   color: var(--rte-primary-hover);
 }
 
-/* Editor Wrapper */
-.rte-editor-wrapper {
-  position: relative;
-  overflow: visible;
-}
-
 /* Editor Content Area */
 .rte-editor {
   min-height: 200px;
@@ -628,38 +622,6 @@
 .rte-image-modal-insert {
   background: var(--rte-primary-color);
   color: white;
-}
-
-/* Floating Toolbar */
-.rte-floating-toolbar {
-  position: absolute;
-  z-index: 1000;
-  pointer-events: auto;
-  animation: rte-fade-in 0.15s ease-out;
-}
-
-@keyframes rte-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.rte-floating-toolbar-content {
-  display: flex;
-  align-items: center;
-  gap: var(--rte-padding-xs);
-  padding: var(--rte-padding-sm) var(--rte-padding-md);
-  background: var(--rte-toolbar-bg);
-  border: 1px solid var(--rte-border-color);
-  border-radius: var(--rte-border-radius);
-  box-shadow: var(--rte-shadow-lg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .rte-image-modal-insert:hover:not(:disabled) {

@@ -31,19 +31,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         };
 
         if (typeof document !== 'undefined') {
-            document.addEventListener("selectionchange", handleSelectionChange);
-            document.addEventListener("mouseup", handleMouseUp);
-            document.addEventListener("keyup", handleKeyUp);
+        document.addEventListener("selectionchange", handleSelectionChange);
+        document.addEventListener("mouseup", handleMouseUp);
+        document.addEventListener("keyup", handleKeyUp);
         }
 
         return () => {
             if (typeof document !== 'undefined') {
-                document.removeEventListener(
-                    "selectionchange",
-                    handleSelectionChange
-                );
-                document.removeEventListener("mouseup", handleMouseUp);
-                document.removeEventListener("keyup", handleKeyUp);
+            document.removeEventListener(
+                "selectionchange",
+                handleSelectionChange
+            );
+            document.removeEventListener("mouseup", handleMouseUp);
+            document.removeEventListener("keyup", handleKeyUp);
             }
         };
     }, []);
