@@ -1,0 +1,50 @@
+{
+    "name": "hendriks-rte",
+    "version": "1.0.0",
+    "description": "A lightweight, extensible Rich Text Editor for React",
+    "main": "dist/index.js",
+    "module": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist",
+        "src"
+    ],
+    "type": "module",
+    "scripts": {
+        "build": "rollup -c",
+        "dev": "rollup -c -w",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "react",
+        "rich-text-editor",
+        "rte",
+        "contenteditable",
+        "editor"
+    ],
+    "author": "",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "publishConfig": {},
+    "peerDependencies": {
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
+    },
+    "dependencies": {
+        "@iconify/react": "^4.1.1"
+    },
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "^25.0.7",
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-typescript": "^11.1.5",
+        "@types/react": "^18.2.43",
+        "@types/react-dom": "^18.2.17",
+        "rollup": "^4.6.1",
+        "rollup-plugin-copy": "^3.5.0",
+        "rollup-plugin-dts": "^6.1.0",
+        "typescript": "^5.3.3"
+    }
+}
