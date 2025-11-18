@@ -4,7 +4,7 @@ Ein leichtgewichtiger, erweiterbarer Rich Text Editor für React.
 
 ## Features
 
--   ✅ **Leichtgewichtig**: Minimale Abhängigkeiten (nur React und Iconify)
+-   ✅ **Leichtgewichtig**: Minimale Abhängigkeiten (nur React)
 -   ✅ **Erweiterbar**: Einfaches Plugin-System
 -   ✅ **Contenteditable-basiert**: Nutzt native Browser-Funktionalität
 -   ✅ **Undo/Redo**: Vollständige Historie-Unterstützung
@@ -47,7 +47,6 @@ function App() {
 ```tsx
 import React from "react";
 import { Editor, Plugin, EditorAPI, ButtonProps } from "hendriks-rte";
-import { Icon } from "@iconify/react";
 
 // Eigenes Plugin erstellen
 const customPlugin: Plugin = {
@@ -59,7 +58,7 @@ const customPlugin: Plugin = {
             onClick={props.onClick}
             className={`toolbar-button ${props.isActive ? "active" : ""}`}
         >
-            <Icon icon="mdi:star" />
+            ⭐ {/* Oder verwende SVG-Icons */}
         </button>
     ),
     execute: (editor: EditorAPI) => {
@@ -190,16 +189,17 @@ interface Plugin {
 
 ```typescript
 import { Plugin, EditorAPI, ButtonProps } from "hendriks-rte";
-import { Icon } from "@iconify/react";
 import { createInlinePlugin } from "hendriks-rte/plugins/base";
 
 const myPlugin = createInlinePlugin(
     "myPlugin",
     "bold", // Command
-    "mdi:format-bold", // Icon
+    "mdi:format-bold", // Icon-Name (wird intern als SVG gerendert)
     "Mein Plugin" // Label
 );
 ```
+
+**Hinweis:** Icons werden intern als SVG gerendert. Du kannst auch eigene SVG-Icons in deinen Plugins verwenden.
 
 ### Beispiel: Komplexes Plugin
 
@@ -209,7 +209,10 @@ const customPlugin: Plugin = {
     type: "block",
     renderButton: (props: ButtonProps) => (
         <button onClick={props.onClick}>
-            <Icon icon="mdi:star" />
+            {/* Verwende SVG-Icons oder Emojis */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
         </button>
     ),
     execute: (editor: EditorAPI) => {
