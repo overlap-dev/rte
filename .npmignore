@@ -1,9 +1,13 @@
-src/
-tsconfig.json
-rollup.config.js
-.gitignore
-*.log
-.DS_Store
 example/
+fresh-example/
+src/
+.gitignore
+.nvmrc
+NPM_PUBLISHING.md
+PREACT_SUPPORT.md
+rollup.config.js
+tsconfig.json
 TESTING.md
 
+*.log
+.DS_Store

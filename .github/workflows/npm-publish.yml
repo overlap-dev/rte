@@ -1,0 +1,32 @@
+# name: Publish Packages to NPM
+# on:
+#   release:
+#     types: [published]
+
+# permissions:
+#   id-token: write # Required for OIDC
+#   contents: read
+
+# jobs:
+#   publish:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: "22.x"
+#           registry-url: "https://registry.npmjs.org"
+#           cache: "npm"
+
+#       # Ensure npm 11.5.1 or later is installed
+#       - name: Update npm
+#         run: npm install -g npm@latest
+
+#       - run: npm ci
+
+#       - run: npm run nx -- run-many --target=lint --all
+#       - run: npm run nx -- run-many --target=test --all --ci
+
+#       - run: npm run nx -- run-many --target=bump --all --ver=${{github.ref_name}}
+#       - run: npm run nx -- run-many --target=publish --all --ver=${{github.ref_name}} --tag=latest

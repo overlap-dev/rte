@@ -1,6 +1,6 @@
 {
-    "name": "hendriks-rte",
-    "version": "1.0.0",
+    "name": "@overlap/rte",
+    "version": "0.1.1",
     "description": "A lightweight, extensible Rich Text Editor for React",
     "main": "dist/index.js",
     "module": "dist/index.esm.js",
@@ -22,18 +22,18 @@
         "contenteditable",
         "editor"
     ],
-    "author": "",
-    "license": "MIT",
+    "author": "Almir Nakicevic <a.nakicevic@overlap.at>",
     "repository": {
         "type": "git",
-        "url": ""
+        "url": "https://github.com/overlap-dev/rte"
     },
-    "publishConfig": {},
     "peerDependencies": {
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0"
     },
-    "dependencies": {},
+    "dependencies": {
+        "tslib": "^2.8.1"
+    },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^25.0.7",
         "@rollup/plugin-node-resolve": "^15.2.3",
