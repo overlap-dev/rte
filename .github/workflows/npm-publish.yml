@@ -27,7 +27,3 @@ jobs:
 
             - name: Publish package using official npm action
               uses: npm/publish@v3
-              with:
-                  # Kein Token nötig!
-                  # Optional: specify access, e.g. public
-                  # access: public
