@@ -15,7 +15,7 @@
         "dev": "rollup -c -w",
         "prepublishOnly": "npm run build",
         "bump": "node tools/scripts/bumpVersion.mjs",
-        "publish:package": "node tools/scripts/publish.mjs rte"
+        "publish:package": "node tools/scripts/publish.mjs"
     },
     "keywords": [
         "react",
