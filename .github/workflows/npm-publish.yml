@@ -41,16 +41,8 @@ jobs:
                   fi
                   echo "Build successful: all required files present"
 
-            - name: Extract version from release tag
-              id: version
-              run: |
-                  VERSION=${GITHUB_REF#refs/tags/v}
-                  VERSION=${VERSION#refs/tags/}
-                  echo "version=$VERSION" >> $GITHUB_OUTPUT
-                  echo "Publishing version: $VERSION"
-
             - name: Bump version in package.json
-              run: npm run bump ${{ steps.version.outputs.version }}
+              run: npm run bump ${{github.ref_name}}
 
             - name: Publish to npm
-              run: npm run publish:package ${{ steps.version.outputs.version }} latest
+              run: npm run publish:package ${{github.ref_name}} latest
