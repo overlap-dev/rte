@@ -49,6 +49,9 @@ export interface EditorAPI {
   clearBackgroundColor: () => void;
   clearFontSize: () => void;
   clearLinks: () => void;
+  // List Indent
+  indentListItem: () => void;
+  outdentListItem: () => void;
 }
 
 export interface CustomRenderer {

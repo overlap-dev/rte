@@ -1,32 +1,58 @@
-# name: Publish Packages to NPM
-# on:
-#   release:
-#     types: [published]
+name: Publish Packages to NPM
 
-# permissions:
-#   id-token: write # Required for OIDC
-#   contents: read
+on:
+    release:
+        types: [published]
 
-# jobs:
-#   publish:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
+permissions:
+    id-token: write # Required for OIDC
+    contents: read
 
-#       - uses: actions/setup-node@v4
-#         with:
-#           node-version: "22.x"
-#           registry-url: "https://registry.npmjs.org"
-#           cache: "npm"
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-#       # Ensure npm 11.5.1 or later is installed
-#       - name: Update npm
-#         run: npm install -g npm@latest
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22.x"
+                  registry-url: "https://registry.npmjs.org"
+                  cache: "npm"
 
-#       - run: npm ci
+            # Ensure npm 11.5.1 or later is installed
+            - name: Update npm
+              run: npm install -g npm@latest
 
-#       - run: npm run nx -- run-many --target=lint --all
-#       - run: npm run nx -- run-many --target=test --all --ci
+            - run: npm ci
 
-#       - run: npm run nx -- run-many --target=bump --all --ver=${{github.ref_name}}
-#       - run: npm run nx -- run-many --target=publish --all --ver=${{github.ref_name}} --tag=latest
+            - name: Run build
+              run: npm run build
+
+            - name: Verify build output
+              run: |
+                  if [ ! -d "dist" ]; then
+                    echo "Build failed: dist directory not found"
+                    exit 1
+                  fi
+                  if [ ! -f "dist/index.js" ] || [ ! -f "dist/index.esm.js" ] || [ ! -f "dist/index.d.ts" ]; then
+                    echo "Build failed: required files not found in dist"
+                    exit 1
+                  fi
+                  echo "Build successful: all required files present"
+
+            - name: Extract version from release tag
+              id: version
+              run: |
+                  VERSION=${GITHUB_REF#refs/tags/v}
+                  VERSION=${VERSION#refs/tags/}
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "Publishing version: $VERSION"
+
+            - name: Bump version in package.json
+              run: npm run bump ${{ steps.version.outputs.version }}
+
+            - name: Publish to npm
+              run: npm run publish:package ${{ steps.version.outputs.version }} latest
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

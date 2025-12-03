@@ -1,13 +1,16 @@
 example/
 fresh-example/
-src/
 .gitignore
 .nvmrc
+.github/
 NPM_PUBLISHING.md
 PREACT_SUPPORT.md
+TESTING.md
 rollup.config.js
 tsconfig.json
-TESTING.md
+tools/
+node_modules/
+package-lock.json
 
 *.log
 .DS_Store

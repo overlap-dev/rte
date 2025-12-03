@@ -1,23 +1,17 @@
 # HENDRIKS-RTE
 
-Ein leichtgewichtiger, erweiterbarer Rich Text Editor für React.
+A lightweight, extensible Rich Text Editor for React.
 
 ## Features
 
--   ✅ **Leichtgewichtig**: Minimale Abhängigkeiten (nur React)
--   ✅ **Erweiterbar**: Einfaches Plugin-System
--   ✅ **Contenteditable-basiert**: Nutzt native Browser-Funktionalität
--   ✅ **Undo/Redo**: Vollständige Historie-Unterstützung
--   ✅ **JSON-Datenmodell**: Strukturierter Export/Import
--   ✅ **TypeScript**: Vollständig typisiert
+-   ✅ **Lightweight**: Minimal dependencies (React only)
+-   ✅ **Extensible**: Simple plugin system
+-   ✅ **Contenteditable-based**: Uses native browser functionality
+-   ✅ **Undo/Redo**: Full history support
+-   ✅ **JSON data model**: Structured export/import
+-   ✅ **TypeScript**: Fully typed
 
-## Installation
-
-```bash
-npm install hendriks-rte
-```
-
-## Grundlegende Verwendung
+## Basic Usage
 
 ```tsx
 import React, { useState } from "react";
@@ -40,25 +34,25 @@ function App() {
 }
 ```
 
-**Hinweis:** Das CSS wird automatisch mit dem Editor importiert, wenn du den Editor verwendest. Falls du das CSS separat importieren möchtest, kannst du `import 'hendriks-rte/dist/styles.css'` verwenden.
+**Note:** The CSS is automatically imported with the Editor when you use it. If you want to import the CSS separately, you can use `import 'hendriks-rte/dist/styles.css'`.
 
-## Mit eigenen Plugins
+## With Custom Plugins
 
 ```tsx
 import React from "react";
 import { Editor, Plugin, EditorAPI, ButtonProps } from "hendriks-rte";
 
-// Eigenes Plugin erstellen
+// Create custom plugin
 const customPlugin: Plugin = {
     name: "custom",
     type: "inline",
-    command: "bold", // oder eigene Logik
+    command: "bold", // or custom logic
     renderButton: (props: ButtonProps) => (
         <button
             onClick={props.onClick}
             className={`toolbar-button ${props.isActive ? "active" : ""}`}
         >
-            ⭐ {/* Oder verwende SVG-Icons */}
+            ⭐ {/* Or use SVG icons */}
         </button>
     ),
     execute: (editor: EditorAPI) => {
@@ -79,7 +73,7 @@ function App() {
 }
 ```
 
-## Mit optionalen Plugins
+## With Optional Plugins
 
 ```tsx
 import React from "react";
@@ -114,15 +108,15 @@ function App() {
 
 ### Editor Props
 
-| Prop               | Type                                | Beschreibung                                 |
-| ------------------ | ----------------------------------- | -------------------------------------------- |
-| `initialContent`   | `EditorContent?`                    | Initialer Editor-Inhalt                      |
-| `onChange`         | `(content: EditorContent) => void?` | Callback bei Änderungen                      |
-| `plugins`          | `Plugin[]?`                         | Array von Plugins (Standard: defaultPlugins) |
-| `placeholder`      | `string?`                           | Platzhalter-Text                             |
-| `className`        | `string?`                           | CSS-Klasse für Container                     |
-| `toolbarClassName` | `string?`                           | CSS-Klasse für Toolbar                       |
-| `editorClassName`  | `string?`                           | CSS-Klasse für Editor                        |
+| Prop               | Type                                | Description                                |
+| ------------------ | ----------------------------------- | ------------------------------------------ |
+| `initialContent`   | `EditorContent?`                    | Initial editor content                     |
+| `onChange`         | `(content: EditorContent) => void?` | Callback on changes                        |
+| `plugins`          | `Plugin[]?`                         | Array of plugins (default: defaultPlugins) |
+| `placeholder`      | `string?`                           | Placeholder text                           |
+| `className`        | `string?`                           | CSS class for container                    |
+| `toolbarClassName` | `string?`                           | CSS class for toolbar                      |
+| `editorClassName`  | `string?`                           | CSS class for editor                       |
 
 ### EditorContent
 
@@ -141,18 +135,18 @@ interface EditorNode {
 
 ### EditorAPI
 
-Die EditorAPI wird an Plugins übergeben und bietet folgende Methoden:
+The EditorAPI is passed to plugins and provides the following methods:
 
--   `executeCommand(command: string, value?: string): boolean` - Führt einen Command aus
--   `getSelection(): Selection | null` - Gibt die aktuelle Selection zurück
--   `getContent(): EditorContent` - Gibt den aktuellen Content zurück
--   `setContent(content: EditorContent): void` - Setzt den Content
--   `insertBlock(type: string, attributes?: Record<string, string>): void` - Fügt einen Block ein
--   `insertInline(type: string, attributes?: Record<string, string>): void` - Fügt ein Inline-Element ein
--   `undo(): void` - Macht die letzte Aktion rückgängig
--   `redo(): void` - Wiederholt die letzte Aktion
--   `canUndo(): boolean` - Prüft, ob Undo möglich ist
--   `canRedo(): boolean` - Prüft, ob Redo möglich ist
+-   `executeCommand(command: string, value?: string): boolean` - Executes a command
+-   `getSelection(): Selection | null` - Returns the current selection
+-   `getContent(): EditorContent` - Returns the current content
+-   `setContent(content: EditorContent): void` - Sets the content
+-   `insertBlock(type: string, attributes?: Record<string, string>): void` - Inserts a block
+-   `insertInline(type: string, attributes?: Record<string, string>): void` - Inserts an inline element
+-   `undo(): void` - Undoes the last action
+-   `redo(): void` - Redoes the last action
+-   `canUndo(): boolean` - Checks if undo is possible
+-   `canRedo(): boolean` - Checks if redo is possible
 
 ### Plugin Interface
 
@@ -168,24 +162,24 @@ interface Plugin {
 }
 ```
 
-## Standard-Plugins
+## Default Plugins
 
--   `boldPlugin` - Fett
--   `italicPlugin` - Kursiv
--   `underlinePlugin` - Unterstrichen
--   `undoPlugin` - Rückgängig
--   `redoPlugin` - Wiederholen
+-   `boldPlugin` - Bold
+-   `italicPlugin` - Italic
+-   `underlinePlugin` - Underline
+-   `undoPlugin` - Undo
+-   `redoPlugin` - Redo
 
-## Optionale Plugins
+## Optional Plugins
 
--   `linkPlugin` - Links einfügen
--   `blockquotePlugin` - Zitate
--   `unorderedListPlugin` - Aufzählungsliste
--   `orderedListPlugin` - Nummerierte Liste
+-   `linkPlugin` - Insert links
+-   `blockquotePlugin` - Blockquotes
+-   `unorderedListPlugin` - Unordered list
+-   `orderedListPlugin` - Ordered list
 
-## Plugin erstellen
+## Creating Plugins
 
-### Beispiel: Einfaches Inline-Plugin
+### Example: Simple Inline Plugin
 
 ```typescript
 import { Plugin, EditorAPI, ButtonProps } from "hendriks-rte";
@@ -194,14 +188,14 @@ import { createInlinePlugin } from "hendriks-rte/plugins/base";
 const myPlugin = createInlinePlugin(
     "myPlugin",
     "bold", // Command
-    "mdi:format-bold", // Icon-Name (wird intern als SVG gerendert)
-    "Mein Plugin" // Label
+    "mdi:format-bold", // Icon name (rendered internally as SVG)
+    "My Plugin" // Label
 );
 ```
 
-**Hinweis:** Icons werden intern als SVG gerendert. Du kannst auch eigene SVG-Icons in deinen Plugins verwenden.
+**Note:** Icons are rendered internally as SVG. You can also use your own SVG icons in your plugins.
 
-### Beispiel: Komplexes Plugin
+### Example: Complex Plugin
 
 ```typescript
 const customPlugin: Plugin = {
@@ -209,7 +203,7 @@ const customPlugin: Plugin = {
     type: "block",
     renderButton: (props: ButtonProps) => (
         <button onClick={props.onClick}>
-            {/* Verwende SVG-Icons oder Emojis */}
+            {/* Use SVG icons or emojis */}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
@@ -219,11 +213,11 @@ const customPlugin: Plugin = {
         editor.insertBlock("div", { class: "custom-block" });
     },
     isActive: (editor: EditorAPI) => {
-        // Prüfe, ob Plugin aktiv ist
+        // Check if plugin is active
         return false;
     },
     canExecute: (editor: EditorAPI) => {
-        // Prüfe, ob Plugin ausgeführt werden kann
+        // Check if plugin can be executed
         return true;
     },
 };
@@ -231,36 +225,36 @@ const customPlugin: Plugin = {
 
 ## Styling
 
-Der Editor kommt mit minimalem CSS. Du kannst die Styles überschreiben:
+The editor comes with minimal CSS. You can override the styles:
 
 ```css
 .rte-container {
-    /* Container-Styles */
+    /* Container styles */
 }
 
 .rte-toolbar {
-    /* Toolbar-Styles */
+    /* Toolbar styles */
 }
 
 .rte-toolbar-button {
-    /* Button-Styles */
+    /* Button styles */
 }
 
 .rte-editor {
-    /* Editor-Styles */
+    /* Editor styles */
 }
 ```
 
-## Entwicklung
+## Development
 
 ```bash
-# Dependencies installieren
+# Install dependencies
 npm install
 
 # Build
 npm run build
 
-# Development mit Watch
+# Development with watch
 npm run dev
 ```
 

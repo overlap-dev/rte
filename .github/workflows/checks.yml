@@ -1,33 +1,41 @@
-# name: Checks (Lint, Test, Build)
+name: Checks (Lint, Test, Build)
 
-# on:
-#   pull_request:
-#   push:
-#     branches: ["main"]
+on:
+    pull_request:
+    push:
+        branches: ["main"]
 
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
-#   cancel-in-progress: true
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+    cancel-in-progress: true
 
-# jobs:
-#   checks:
-#     runs-on: ubuntu-latest
+jobs:
+    checks:
+        runs-on: ubuntu-latest
 
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           fetch-depth: 0
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-#       - uses: nrwl/nx-set-shas@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22.x"
+                  cache: "npm"
 
-#       - uses: actions/setup-node@v4
-#         with:
-#           node-version: "22.x"
-#           cache: "npm"
+            - run: npm ci
 
-#       - run: npm ci
+            - name: Run build
+              run: npm run build
 
-#       - run: npm run nx -- format:check
-#       - run: npm run nx -- affected --target=lint --parallel=3
-#       - run: npm run nx -- affected --target=test --parallel=3 --ci --code-coverage
-#       - run: npm run nx -- affected --target=build --parallel=3
+            - name: Check build output
+              run: |
+                  if [ ! -d "dist" ]; then
+                    echo "Build failed: dist directory not found"
+                    exit 1
+                  fi
+                  if [ ! -f "dist/index.js" ] || [ ! -f "dist/index.esm.js" ] || [ ! -f "dist/index.d.ts" ]; then
+                    echo "Build failed: required files not found in dist"
+                    exit 1
+                  fi
+                  echo "Build successful: all required files present"

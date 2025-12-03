@@ -2,11 +2,10 @@ import {
     Editor,
     EditorAPI,
     EditorContent,
-    blockquotePlugin,
     defaultPlugins,
+    indentListItemPlugin,
     linkPlugin,
-    orderedListPlugin,
-    unorderedListPlugin,
+    outdentListItemPlugin,
 } from "hendriks-rte";
 import { useRef, useState } from "react";
 
@@ -18,9 +17,8 @@ function App() {
     const allPlugins = [
         ...defaultPlugins,
         linkPlugin,
-        blockquotePlugin,
-        unorderedListPlugin,
-        orderedListPlugin,
+        indentListItemPlugin,
+        outdentListItemPlugin,
     ];
 
     const handleImportHtml = () => {

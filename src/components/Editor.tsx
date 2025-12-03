@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { defaultPlugins } from "../plugins";
+import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import {
     createBackgroundColorPlugin,
     createTextColorPlugin,
 } from "../plugins/colors";
 import { createFontSizePlugin } from "../plugins/fontSize";
-import { createHeadingsPlugin } from "../plugins/headings";
 import { createImagePlugin } from "../plugins/image";
 import { EditorAPI, EditorContent, EditorProps } from "../types";
 import {
@@ -56,8 +56,18 @@ export const Editor: React.FC<EditorProps> = ({
             allPlugins.push(createBackgroundColorPlugin(colors));
         }
 
+        // BlockFormat Plugin ist bereits in defaultPlugins enthalten
+        // Wenn custom headings angegeben sind, ersetze das Standard-Plugin
         if (headings && headings.length > 0) {
-            allPlugins.push(createHeadingsPlugin(headings));
+            // Entferne das Standard-BlockFormat-Plugin
+            const blockFormatIndex = allPlugins.findIndex(
+                (p) => p.name === "blockFormat"
+            );
+            if (blockFormatIndex !== -1) {
+                allPlugins.splice(blockFormatIndex, 1);
+            }
+            // Füge das Plugin mit custom Headlines hinzu
+            allPlugins.push(createBlockFormatPlugin(headings));
         }
 
         allPlugins.push(createImagePlugin(onImageUpload));
@@ -78,7 +88,8 @@ export const Editor: React.FC<EditorProps> = ({
     );
 
     const restoreSelection = useCallback((editor: HTMLElement) => {
-        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        if (typeof window === "undefined" || typeof document === "undefined")
+            return;
         const range = document.createRange();
         const selection = window.getSelection();
 
@@ -310,7 +321,7 @@ export const Editor: React.FC<EditorProps> = ({
             executeCommand,
 
             getSelection: (): Selection | null => {
-                if (typeof window === 'undefined') return null;
+                if (typeof window === "undefined") return null;
                 return window.getSelection();
             },
 
@@ -547,6 +558,46 @@ export const Editor: React.FC<EditorProps> = ({
                     }, 0);
                 }
             },
+
+            indentListItem: (): void => {
+                const editor = editorRef.current;
+                if (!editor) return;
+
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const currentContent = domToContent(editor);
+                    historyRef.current.push(currentContent);
+
+                    indentListItem(selection);
+
+                    setTimeout(() => {
+                        if (editor) {
+                            const content = domToContent(editor);
+                            notifyChange(content);
+                        }
+                    }, 0);
+                }
+            },
+
+            outdentListItem: (): void => {
+                const editor = editorRef.current;
+                if (!editor) return;
+
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const currentContent = domToContent(editor);
+                    historyRef.current.push(currentContent);
+
+                    outdentListItem(selection);
+
+                    setTimeout(() => {
+                        if (editor) {
+                            const content = domToContent(editor);
+                            notifyChange(content);
+                        }
+                    }, 0);
+                }
+            },
         };
     }, [
         notifyChange,
@@ -599,62 +650,54 @@ export const Editor: React.FC<EditorProps> = ({
             const isModifierPressed = e.metaKey || e.ctrlKey;
 
             if (e.key === "Tab" && !isModifierPressed && !e.altKey) {
+                // Immer preventDefault aufrufen (wie Lexical), damit Tab den Fokus nicht aus dem Editor entfernt
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
                 const selection = window.getSelection();
 
-                const isSelectionInEditor =
-                    selection &&
-                    selection.rangeCount > 0 &&
-                    editor.contains(
-                        selection.getRangeAt(0).commonAncestorContainer
-                    );
-
-                const isEditorFocused =
-                    document.activeElement === editor ||
-                    editor.contains(document.activeElement) ||
-                    isSelectionInEditor;
-
-                if (!isEditorFocused) {
+                if (!selection || selection.rangeCount === 0) {
+                    // Keine Selection: Tab verhindern, Fokus bleibt im Editor
                     return;
                 }
 
-                e.preventDefault();
-                e.stopPropagation();
+                const range = selection.getRangeAt(0);
+                const container = range.commonAncestorContainer;
 
-                if (
-                    isSelectionInEditor &&
-                    selection &&
-                    selection.rangeCount > 0
-                ) {
-                    const range = selection.getRangeAt(0);
-                    const container = range.commonAncestorContainer;
-                    const listItem =
-                        container.nodeType === Node.TEXT_NODE
-                            ? container.parentElement?.closest("li")
-                            : (container as HTMLElement).closest("li");
-
-                    if (listItem && editor.contains(listItem)) {
-                        e.stopImmediatePropagation();
-
-                        const currentContent = domToContent(editor);
-                        historyRef.current.push(currentContent);
-
-                        if (e.shiftKey) {
-                            outdentListItem(selection);
-                        } else {
-                            indentListItem(selection);
-                        }
-
-                        setTimeout(() => {
-                            if (editor) {
-                                const content = domToContent(editor);
-                                notifyChange(content);
-                            }
-                        }, 0);
-                        return;
-                    }
+                if (!editor.contains(container)) {
+                    // Container nicht im Editor: Tab verhindern
+                    return;
                 }
 
-                document.execCommand("insertText", false, "\t");
+                // Prüfe ob wir in einer Liste sind
+                const listItem =
+                    container.nodeType === Node.TEXT_NODE
+                        ? container.parentElement?.closest("li")
+                        : (container as HTMLElement).closest("li");
+
+                if (listItem && editor.contains(listItem)) {
+                    // In Liste: Indent/Outdent durchführen
+                    const currentContent = domToContent(editor);
+                    historyRef.current.push(currentContent);
+
+                    if (e.shiftKey) {
+                        outdentListItem(selection);
+                    } else {
+                        indentListItem(selection);
+                    }
+
+                    setTimeout(() => {
+                        if (editor) {
+                            const content = domToContent(editor);
+                            notifyChange(content);
+                        }
+                    }, 0);
+                    return;
+                }
+
+                // Nicht in Liste: Tab verhindern, aber kein Tab-Zeichen einfügen
+                // Der Fokus bleibt im Editor (durch preventDefault)
             }
 
             if (isModifierPressed && e.key === "z" && !e.shiftKey) {
@@ -672,11 +715,11 @@ export const Editor: React.FC<EditorProps> = ({
         };
 
         editor.addEventListener("input", handleInput);
-        editor.addEventListener("keydown", handleKeyDown);
+        editor.addEventListener("keydown", handleKeyDown, true);
 
         return () => {
             editor.removeEventListener("input", handleInput);
-            editor.removeEventListener("keydown", handleKeyDown);
+            editor.removeEventListener("keydown", handleKeyDown, true);
             if (inputTimeout) {
                 clearTimeout(inputTimeout);
             }
