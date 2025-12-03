@@ -6,7 +6,8 @@
     "module": "dist/index.esm.js",
     "types": "dist/index.d.ts",
     "files": [
-        "dist"
+        "dist",
+        "src"
     ],
     "type": "module",
     "scripts": {
@@ -48,12 +49,6 @@
         "rollup-plugin-copy": "^3.5.0",
         "rollup-plugin-dts": "^6.1.0",
         "typescript": "^5.3.3"
-    },
-    "directories": {
-        "example": "example"
-    },
-    "bugs": {
-        "url": "https://github.com/overlap-dev/rte/issues"
     },
     "homepage": "https://github.com/overlap-dev/rte#readme"
 }
