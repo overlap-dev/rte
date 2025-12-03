@@ -54,5 +54,3 @@ jobs:
 
             - name: Publish to npm
               run: npm run publish:package ${{ steps.version.outputs.version }} latest
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
