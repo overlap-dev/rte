@@ -121,7 +121,7 @@ export function useEditorEvents({
                 if (editorContainer) {
                     const linkBtn =
                         editorContainer.querySelector(
-                            'button[aria-label="Link"], button[aria-label="Link einfügen"]'
+                            'button[aria-label="Link"], button[aria-label="Insert Link"]'
                         ) as HTMLButtonElement | null;
                     if (linkBtn) linkBtn.click();
                 }

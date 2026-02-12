@@ -2,10 +2,10 @@ import { Dropdown } from "../components/Dropdown";
 import { EditorAPI, Plugin } from "../types";
 
 const alignmentLabels: Record<string, string> = {
-    left: "Links",
-    center: "Zentriert",
-    right: "Rechts",
-    justify: "Blocksatz",
+    left: "Left",
+    center: "Center",
+    right: "Right",
+    justify: "Justify",
 };
 
 const alignmentIcons: Record<string, string> = {
@@ -96,7 +96,7 @@ export function createAlignmentPlugin(
             return (
                 <Dropdown
                     icon={alignmentIcons[currentValue] || "mdi:format-align-left"}
-                    label="Ausrichtung"
+                    label="Alignment"
                     options={options}
                     onSelect={(value) => {
                         if (onSelect) onSelect(value);

@@ -7,48 +7,48 @@ import { clearFormattingPlugin } from "./clearFormatting";
 const defaultHeadings = ["h1", "h2", "h3", "h4", "h5", "h6"];
 
 /**
- * Standard-Plugins
+ * Standard Plugins
  */
 export const boldPlugin: Plugin = createInlinePlugin(
     "bold",
     "bold",
     "mdi:format-bold",
-    "Fett"
+    "Bold"
 );
 
 export const italicPlugin: Plugin = createInlinePlugin(
     "italic",
     "italic",
     "mdi:format-italic",
-    "Kursiv"
+    "Italic"
 );
 
 export const underlinePlugin: Plugin = createInlinePlugin(
     "underline",
     "underline",
     "mdi:format-underline",
-    "Unterstrichen"
+    "Underline"
 );
 
 export const strikethroughPlugin: Plugin = createInlinePlugin(
     "strikethrough",
     "strikeThrough",
     "mdi:format-strikethrough",
-    "Durchgestrichen"
+    "Strikethrough"
 );
 
 export const subscriptPlugin: Plugin = createInlinePlugin(
     "subscript",
     "subscript",
     "mdi:format-subscript",
-    "Tiefgestellt"
+    "Subscript"
 );
 
 export const superscriptPlugin: Plugin = createInlinePlugin(
     "superscript",
     "superscript",
     "mdi:format-superscript",
-    "Hochgestellt"
+    "Superscript"
 );
 
 export const codeInlinePlugin: Plugin = {
@@ -119,18 +119,18 @@ export const undoPlugin: Plugin = createCommandPlugin(
     "undo",
     "undo",
     "mdi:undo",
-    "Rückgängig"
+    "Undo"
 );
 
 export const redoPlugin: Plugin = createCommandPlugin(
     "redo",
     "redo",
     "mdi:redo",
-    "Wiederholen"
+    "Redo"
 );
 
 /**
- * Indent List Item Plugin (Tab für Unterliste)
+ * Indent List Item Plugin
  */
 const indentListItemPlugin: Plugin = {
     name: "indentListItem",
@@ -141,8 +141,8 @@ const indentListItemPlugin: Plugin = {
             onClick={props.onClick}
             disabled={props.disabled}
             className="rte-toolbar-button"
-            title="Einrücken (Unterliste)"
-            aria-label="Einrücken (Unterliste)"
+            title="Indent"
+            aria-label="Indent"
         >
             <IconWrapper
                 icon="mdi:format-indent-increase"
@@ -170,7 +170,7 @@ const indentListItemPlugin: Plugin = {
 };
 
 /**
- * Outdent List Item Plugin (Shift+Tab)
+ * Outdent List Item Plugin
  */
 const outdentListItemPlugin: Plugin = {
     name: "outdentListItem",
@@ -181,8 +181,8 @@ const outdentListItemPlugin: Plugin = {
             onClick={props.onClick}
             disabled={props.disabled}
             className="rte-toolbar-button"
-            title="Ausrücken"
-            aria-label="Ausrücken"
+            title="Outdent"
+            aria-label="Outdent"
         >
             <IconWrapper
                 icon="mdi:format-indent-decrease"
@@ -207,7 +207,7 @@ const outdentListItemPlugin: Plugin = {
 
         if (!listItem) return false;
 
-        // Prüfe ob in verschachtelter Liste
+        // Check if in nested list
         const list = listItem.parentElement;
         if (!list || (list.tagName !== "UL" && list.tagName !== "OL"))
             return false;
@@ -221,15 +221,15 @@ const outdentListItemPlugin: Plugin = {
 export { indentListItemPlugin, outdentListItemPlugin };
 
 /**
- * Standard-Plugin-Liste
- * Die Plugins werden hier direkt referenziert, um sicherzustellen, dass sie in defaultPlugins enthalten sind
+ * Standard Plugin List
+ * Plugins are referenced here directly to ensure they are included in defaultPlugins
  */
 const _indentPlugin = indentListItemPlugin;
 const _outdentPlugin = outdentListItemPlugin;
 
 /**
- * Standard Block-Format Plugin (Headlines, Listen, Quote in einem Dropdown)
- * Verwendet standardmäßig h1, h2, h3, kann aber über Editor-Props angepasst werden
+ * Standard Block Format Plugin (headings, lists, quote in a dropdown)
+ * Uses h1, h2, h3 by default, but can be customized via Editor props
  */
 const defaultBlockFormatPlugin = createBlockFormatPlugin(defaultHeadings);
 

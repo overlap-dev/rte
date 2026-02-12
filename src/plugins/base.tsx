@@ -3,7 +3,7 @@ import { Plugin, EditorAPI, ButtonProps } from '../types';
 import { IconWrapper } from '../components/IconWrapper';
 
 /**
- * Basis-Plugin für Inline-Formatierungen
+ * Base plugin for inline formatting
  */
 export function createInlinePlugin(
   name: string,
@@ -46,7 +46,7 @@ export function createInlinePlugin(
       return document.queryCommandState(command);
     },
     canExecute: (editor: EditorAPI) => {
-      // Formatierung sollte auch ohne Selection möglich sein
+      // Formatting should also work without a selection
       // (z.B. wenn Editor leer ist, wird beim Klick eine Selection erstellt)
       return true;
     },
@@ -54,7 +54,7 @@ export function createInlinePlugin(
 }
 
 /**
- * Basis-Plugin für Commands
+ * Base plugin for commands
  */
 export function createCommandPlugin(
   name: string,

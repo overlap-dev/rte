@@ -2,7 +2,7 @@ import { IconWrapper } from "../components/IconWrapper";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
 
 /**
- * Indent List Item Plugin (Tab für Unterliste)
+ * Indent List Item Plugin (Tab to indent list item)
  */
 export const indentListItemPlugin: Plugin = {
     name: "indentListItem",
@@ -13,8 +13,8 @@ export const indentListItemPlugin: Plugin = {
             onClick={props.onClick}
             disabled={props.disabled}
             className="rte-toolbar-button"
-            title="Einrücken (Unterliste)"
-            aria-label="Einrücken (Unterliste)"
+            title="Indent"
+            aria-label="Indent"
         >
             <IconWrapper
                 icon="mdi:format-indent-increase"
@@ -53,8 +53,8 @@ export const outdentListItemPlugin: Plugin = {
             onClick={props.onClick}
             disabled={props.disabled}
             className="rte-toolbar-button"
-            title="Ausrücken"
-            aria-label="Ausrücken"
+            title="Outdent"
+            aria-label="Outdent"
         >
             <IconWrapper
                 icon="mdi:format-indent-decrease"
@@ -79,7 +79,7 @@ export const outdentListItemPlugin: Plugin = {
 
         if (!listItem) return false;
 
-        // Prüfe ob in verschachtelter Liste
+        // Check if in nested list
         const list = listItem.parentElement;
         if (!list || (list.tagName !== "UL" && list.tagName !== "OL"))
             return false;

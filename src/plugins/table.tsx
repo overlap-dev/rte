@@ -44,7 +44,7 @@ const InsertTableDialog: React.FC<InsertDialogProps> = ({
 
     return (
         <div className="rte-table-insert-dialog" ref={dialogRef}>
-            <div className="rte-table-insert-title">Tabelle einfügen</div>
+            <div className="rte-table-insert-title">Insert Table</div>
             <div className="rte-table-insert-fields">
                 <label className="rte-table-insert-label">
                     <span>Zeilen</span>
@@ -88,7 +88,7 @@ const InsertTableDialog: React.FC<InsertDialogProps> = ({
                 className="rte-table-insert-btn"
                 onClick={() => onInsert(rows, cols)}
             >
-                Einfügen
+                Insert
             </button>
         </div>
     );
@@ -136,26 +136,26 @@ const TableContextMenu: React.FC<ContextMenuProps> = ({
                 type="button"
                 onClick={() => action(() => insertRow("above"))}
             >
-                Zeile oben einfügen
+                Insert row above
             </button>
             <button
                 type="button"
                 onClick={() => action(() => insertRow("below"))}
             >
-                Zeile unten einfügen
+                Insert row below
             </button>
             <div className="rte-table-context-divider" />
             <button
                 type="button"
                 onClick={() => action(() => insertColumn("left"))}
             >
-                Spalte links einfügen
+                Insert column left
             </button>
             <button
                 type="button"
                 onClick={() => action(() => insertColumn("right"))}
             >
-                Spalte rechts einfügen
+                Insert column right
             </button>
             <div className="rte-table-context-divider" />
             <button
@@ -163,21 +163,21 @@ const TableContextMenu: React.FC<ContextMenuProps> = ({
                 className="rte-table-context-danger"
                 onClick={() => action(deleteRow)}
             >
-                Zeile löschen
+                Delete row
             </button>
             <button
                 type="button"
                 className="rte-table-context-danger"
                 onClick={() => action(deleteColumn)}
             >
-                Spalte löschen
+                Delete column
             </button>
             <button
                 type="button"
                 className="rte-table-context-danger"
                 onClick={() => action(deleteTable)}
             >
-                Tabelle löschen
+                Delete table
             </button>
         </div>
     );
@@ -257,8 +257,8 @@ const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
                 className={`rte-toolbar-button ${
                     props.isActive ? "rte-toolbar-button-active" : ""
                 }`}
-                title="Tabelle"
-                aria-label="Tabelle"
+                title="Table"
+                aria-label="Table"
             >
                 <IconWrapper icon="mdi:table" width={18} height={18} />
             </button>

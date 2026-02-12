@@ -15,7 +15,7 @@ export function getCurrentFontSize(editor: EditorAPI): string | undefined {
 
   if (!element) return undefined;
 
-  // Suche nach dem nächsten Element mit fontSize
+  // Find the nearest element with fontSize
   let current: HTMLElement | null = element;
   while (current && current !== document.body) {
     const fontSize = window.getComputedStyle(current).fontSize;
@@ -33,7 +33,7 @@ export function getCurrentFontSize(editor: EditorAPI): string | undefined {
 }
 
 /**
- * Liest die aktuelle Textfarbe aus dem DOM an der Cursor-Position
+ * Reads the current text color from the DOM at the cursor position
  */
 export function getCurrentTextColor(editor: EditorAPI): string | undefined {
   const selection = editor.getSelection();
@@ -47,13 +47,13 @@ export function getCurrentTextColor(editor: EditorAPI): string | undefined {
 
   if (!element) return undefined;
 
-  // Suche nach dem nächsten Element mit color
+  // Find the nearest element with color
   let current: HTMLElement | null = element;
   while (current && current !== document.body) {
-    // Prüfe zuerst inline style (hat Priorität)
+    // Check inline style first (has priority)
     const inlineColor = current.style.color;
     if (inlineColor && inlineColor.trim()) {
-      // Wenn bereits Hex, direkt zurückgeben
+      // If already hex, return directly
       if (inlineColor.startsWith('#')) {
         return inlineColor;
       }
@@ -88,7 +88,7 @@ export function getCurrentTextColor(editor: EditorAPI): string | undefined {
 }
 
 /**
- * Liest die aktuelle Hintergrundfarbe aus dem DOM an der Cursor-Position
+ * Reads the current background color from the DOM at the cursor position
  */
 export function getCurrentBackgroundColor(editor: EditorAPI): string | undefined {
   const selection = editor.getSelection();
@@ -102,13 +102,13 @@ export function getCurrentBackgroundColor(editor: EditorAPI): string | undefined
 
   if (!element) return undefined;
 
-  // Suche nach dem nächsten Element mit backgroundColor
+  // Find the nearest element with backgroundColor
   let current: HTMLElement | null = element;
   while (current && current !== document.body) {
-    // Prüfe zuerst inline style (hat Priorität)
+    // Check inline style first (has priority)
     const inlineBgColor = current.style.backgroundColor;
     if (inlineBgColor && inlineBgColor.trim()) {
-      // Wenn bereits Hex, direkt zurückgeben
+      // If already hex, return directly
       if (inlineBgColor.startsWith('#')) {
         return inlineBgColor;
       }
@@ -143,7 +143,7 @@ export function getCurrentBackgroundColor(editor: EditorAPI): string | undefined
 }
 
 /**
- * Liest das aktuelle Heading-Level aus dem DOM an der Cursor-Position
+ * Reads the current heading level from the DOM at the cursor position
  */
 export function getCurrentHeading(editor: EditorAPI, availableHeadings: string[]): string | undefined {
   const selection = editor.getSelection();
@@ -157,7 +157,7 @@ export function getCurrentHeading(editor: EditorAPI, availableHeadings: string[]
 
   if (!element) return undefined;
 
-  // Suche nach dem nächsten Block-Element
+  // Find the nearest block element
   let current: HTMLElement | null = element;
   while (current && current !== document.body) {
     const tagName = current.tagName.toLowerCase();

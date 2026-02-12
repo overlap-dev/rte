@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { defaultPlugins } from "../plugins";
+import { buildPluginsFromSettings } from "../utils/settings";
 import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import {
     createBackgroundColorPlugin,
@@ -35,7 +36,7 @@ export const Editor: React.FC<EditorProps> = ({
     initialContent,
     onChange,
     plugins: providedPlugins,
-    placeholder = "Text eingeben...",
+    placeholder = "Enter text...",
     className,
     toolbarClassName,
     editorClassName,
@@ -48,6 +49,8 @@ export const Editor: React.FC<EditorProps> = ({
     onEditorAPIReady,
     theme,
     onImageUpload,
+    settings,
+    settingsOptions,
 }) => {
     // --- Shared Refs ---
     const editorRef = useRef<HTMLDivElement>(null);
@@ -56,6 +59,15 @@ export const Editor: React.FC<EditorProps> = ({
 
     // --- Plugins ---
     const plugins = useMemo(() => {
+        // When settings is provided and plugins is not, use buildPluginsFromSettings
+        if (settings && !providedPlugins) {
+            const opts = {
+                ...settingsOptions,
+                onImageUpload: settingsOptions?.onImageUpload ?? onImageUpload,
+            };
+            return buildPluginsFromSettings(settings, opts);
+        }
+
         const allPlugins = [...(providedPlugins || defaultPlugins)];
 
         if (headings && headings.length > 0) {
@@ -104,7 +116,7 @@ export const Editor: React.FC<EditorProps> = ({
         allPlugins.push(createImagePlugin(onImageUpload));
 
         return allPlugins;
-    }, [providedPlugins, fontSizes, colors, headings, onImageUpload]);
+    }, [providedPlugins, fontSizes, colors, headings, onImageUpload, settings, settingsOptions]);
 
     // --- Callbacks ---
     const notifyChange = useCallback(

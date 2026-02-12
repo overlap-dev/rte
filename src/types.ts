@@ -17,7 +17,7 @@ export interface Plugin {
   execute?: (editor: EditorAPI, value?: string) => void;
   isActive?: (editor: EditorAPI) => boolean;
   canExecute?: (editor: EditorAPI) => boolean;
-  // State Reflection: Gibt den aktuellen Wert zurück (z.B. "22" für fontSize, "#ff0000" für color, "h1" für heading)
+  // State Reflection: Returns the current value (e.g. "22" for fontSize, "#ff0000" for color, "h1" for heading)
   getCurrentValue?: (editor: EditorAPI) => string | undefined;
 }
 
@@ -91,5 +91,9 @@ export interface EditorProps {
   };
   // Image Upload
   onImageUpload?: (file: File) => Promise<string>;
+  // Settings-based configuration (alternative to manual plugins)
+  settings?: import('./utils/settings').EditorSettings;
+  // Options for buildPluginsFromSettings when using settings prop
+  settingsOptions?: import('./utils/settings').BuildPluginsOptions;
 }
 

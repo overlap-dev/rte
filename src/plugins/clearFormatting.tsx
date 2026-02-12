@@ -3,7 +3,7 @@ import { Plugin, EditorAPI, ButtonProps } from '../types';
 import { IconWrapper } from '../components/IconWrapper';
 
 /**
- * Clear Formatting Plugin - Entfernt alle Formatierungen
+ * Clear Formatting Plugin - Removes all formatting
  */
 export const clearFormattingPlugin: Plugin = {
     name: 'clearFormatting',
@@ -14,8 +14,8 @@ export const clearFormattingPlugin: Plugin = {
             onClick={props.onClick}
             disabled={props.disabled}
             className="rte-toolbar-button"
-            title="Formatierung entfernen"
-            aria-label="Formatierung entfernen"
+            title="Clear Formatting"
+            aria-label="Clear Formatting"
         >
             <IconWrapper icon="mdi:format-clear" width={18} height={18} />
         </button>

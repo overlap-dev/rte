@@ -21,7 +21,7 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
             return (
                 <Dropdown
                     icon="mdi:format-size"
-                    label="Schriftgröße"
+                    label="Font Size"
                     options={options}
                     onSelect={(value) => {
                         if (props.onSelect) {
@@ -40,7 +40,7 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
         },
         execute: (editor: EditorAPI, value?: string) => {
             if (value) {
-                // Setze inline style für präzise Größe
+                // Set inline style for precise size
                 const selection = editor.getSelection();
                 if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
@@ -60,7 +60,7 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
                         try {
                             range.surroundContents(span);
                         } catch (e) {
-                            // Falls surroundContents fehlschlägt
+                            // If surroundContents fails
                             const contents = range.extractContents();
                             span.appendChild(contents);
                             range.insertNode(span);

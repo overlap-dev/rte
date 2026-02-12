@@ -1,4 +1,4 @@
-/* CSS Variables für Theme-Support */
+/* CSS Variables for theme support */
 :root {
     /* Colors */
     --rte-border-color: #e5e7eb;
@@ -11,6 +11,10 @@
     --rte-text-secondary: #6b7280;
     --rte-primary-color: #3b82f6;
     --rte-primary-hover: #2563eb;
+    --rte-primary-light: rgba(59, 130, 246, 0.15);
+    --rte-danger-color: #dc2626;
+    --rte-danger-light: #fef2f2;
+    --rte-danger-border: #fca5a5;
 
     /* Spacing */
     --rte-padding-xs: 4px;
@@ -448,7 +452,7 @@
 
 .rte-dropdown-color-preview.active {
     border: 2px solid var(--rte-primary-color);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 2px var(--rte-primary-light);
 }
 
 /* Color Preview in Dropdown */
@@ -661,7 +665,7 @@
 .rte-image-alt-input:focus {
     outline: none;
     border-color: var(--rte-primary-color);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px var(--rte-primary-light);
 }
 
 .rte-image-preview {
@@ -766,7 +770,7 @@
     top: 100%;
     left: 0;
     z-index: 1000;
-    background: white;
+    background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -808,7 +812,7 @@
 
 .rte-table-insert-input:focus {
     border-color: var(--rte-primary-color);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 2px var(--rte-primary-light);
 }
 
 .rte-table-insert-btn {
@@ -832,7 +836,7 @@
 /* Table Context Menu */
 .rte-table-context-menu {
     z-index: 1000;
-    background: white;
+    background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -860,11 +864,11 @@
 }
 
 .rte-table-context-danger {
-    color: #dc2626 !important;
+    color: var(--rte-danger-color) !important;
 }
 
 .rte-table-context-danger:hover {
-    background: #fef2f2 !important;
+    background: var(--rte-danger-light) !important;
 }
 
 .rte-table-context-divider {
@@ -946,7 +950,7 @@
 .rte-link-dialog-input:focus,
 .rte-link-dialog-select:focus {
     border-color: var(--rte-primary-color);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 2px var(--rte-primary-light);
 }
 
 .rte-link-dialog-input:disabled {
@@ -983,7 +987,7 @@
     margin-top: 4px;
 }
 
-/* Checkbox row (e.g. "In neuem Tab öffnen") */
+/* Checkbox row (e.g. "Open in new tab") */
 .rte-link-dialog-checkbox-row {
     display: flex;
     align-items: center;
@@ -1042,12 +1046,12 @@
 }
 
 .rte-link-dialog-btn-danger {
-    color: #dc2626;
-    border-color: #fca5a5;
+    color: var(--rte-danger-color);
+    border-color: var(--rte-danger-border);
 }
 
 .rte-link-dialog-btn-danger:hover {
-    background: #fef2f2;
+    background: var(--rte-danger-light);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

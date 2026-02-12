@@ -214,7 +214,7 @@ const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
                 className="rte-link-dialog-close"
                 onClick={onClose}
                 onMouseDown={(e) => e.preventDefault()}
-                aria-label="Schließen"
+                aria-label="Close"
             >
                 <IconWrapper icon="mdi:close" width={16} height={16} />
             </button>
@@ -286,7 +286,7 @@ const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
                                             )
                                         }
                                     />
-                                    <span>In neuem Tab öffnen</span>
+                                    <span>Open in new tab</span>
                                 </label>
                             )}
                         </div>

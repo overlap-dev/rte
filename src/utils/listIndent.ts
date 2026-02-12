@@ -1,5 +1,5 @@
 /**
- * Erhöht den Einrückungs-Level eines List-Items (Tab)
+ * Increases the indent level of a list item (Tab)
  */
 export function indentListItem(selection: Selection): boolean {
   if (!selection || selection.rangeCount === 0) return false;
@@ -15,7 +15,7 @@ export function indentListItem(selection: Selection): boolean {
   const list = listItem.parentElement;
   if (!list || (list.tagName !== 'UL' && list.tagName !== 'OL')) return false;
 
-  // Prüfe ob bereits verschachtelt (max depth check)
+  // Check if already nested (max depth check)
   let depth = 0;
   let current: HTMLElement | null = listItem;
   while (current) {
@@ -99,7 +99,7 @@ export function indentListItem(selection: Selection): boolean {
 }
 
 /**
- * Reduziert den Einrückungs-Level eines List-Items (Shift+Tab)
+ * Decreases the indent level of a list item (Shift+Tab)
  */
 export function outdentListItem(selection: Selection): boolean {
   if (!selection || selection.rangeCount === 0) return false;
@@ -115,7 +115,7 @@ export function outdentListItem(selection: Selection): boolean {
   const list = listItem.parentElement;
   if (!list || (list.tagName !== 'UL' && list.tagName !== 'OL')) return false;
 
-  // Prüfe ob in verschachtelter Liste
+  // Check if in nested list
   const parentListItem = list.parentElement;
   if (!parentListItem || parentListItem.tagName !== 'LI') {
     // Bereits auf oberstem Level
@@ -139,7 +139,7 @@ export function outdentListItem(selection: Selection): boolean {
     nextSibling = nextSibling.nextElementSibling;
   }
 
-  // Füge Items nach dem Parent-Item ein
+  // Insert items after the parent item
   itemsToMove.forEach(item => {
     parentList.insertBefore(item, insertAfter.nextSibling);
   });

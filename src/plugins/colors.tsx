@@ -9,13 +9,13 @@ const defaultColors = [
     { value: '#666666', label: 'Grau', color: '#666666' },
     { value: '#ff0000', label: 'Rot', color: '#ff0000' },
     { value: '#0000ff', label: 'Blau', color: '#0000ff' },
-    { value: '#00aa00', label: 'Grün', color: '#00aa00' },
+    { value: '#00aa00', label: 'Green', color: '#00aa00' },
     { value: '#ffaa00', label: 'Orange', color: '#ffaa00' },
     { value: '#aa00ff', label: 'Lila', color: '#aa00ff' },
 ];
 
 export function createTextColorPlugin(colors: string[] = defaultColors.map(c => c.value)): Plugin {
-    // Finde Labels für bekannte Farben
+    // Find labels for known colors
     const getColorLabel = (color: string): string => {
         const found = defaultColors.find(c => c.value.toLowerCase() === color.toLowerCase());
         return found ? found.label : color;
@@ -31,13 +31,13 @@ export function createTextColorPlugin(colors: string[] = defaultColors.map(c => 
         name: 'textColor',
         type: 'inline',
         renderButton: (props: ButtonProps & { onSelect?: (value: string) => void; editorAPI?: EditorAPI; currentValue?: string }) => {
-            // Aktuelle Textfarbe aus State Reflection
+            // Current text color from state reflection
             const currentValue = props.currentValue || (props.editorAPI ? getCurrentTextColor(props.editorAPI) : undefined);
             
             return (
                 <Dropdown
                     icon="mdi:format-color-text"
-                    label="Textfarbe"
+                    label="Text Color"
                     options={colorOptions.map(opt => ({
                         value: opt.value,
                         label: opt.label,
@@ -68,7 +68,7 @@ export function createTextColorPlugin(colors: string[] = defaultColors.map(c => 
 }
 
 export function createBackgroundColorPlugin(colors: string[] = defaultColors.map(c => c.value)): Plugin {
-    // Finde Labels für bekannte Farben
+    // Find labels for known colors
     const getColorLabel = (color: string): string => {
         const found = defaultColors.find(c => c.value.toLowerCase() === color.toLowerCase());
         return found ? found.label : color;
@@ -84,13 +84,13 @@ export function createBackgroundColorPlugin(colors: string[] = defaultColors.map
         name: 'backgroundColor',
         type: 'inline',
         renderButton: (props: ButtonProps & { onSelect?: (value: string) => void; editorAPI?: EditorAPI; currentValue?: string }) => {
-            // Aktuelle Hintergrundfarbe aus State Reflection
+            // Current background color from state reflection
             const currentValue = props.currentValue || (props.editorAPI ? getCurrentBackgroundColor(props.editorAPI) : undefined);
             
             return (
                 <Dropdown
                     icon="mdi:format-color-fill"
-                    label="Hintergrundfarbe"
+                    label="Background Color"
                     options={colorOptions.map(opt => ({
                         value: opt.value,
                         label: opt.label,

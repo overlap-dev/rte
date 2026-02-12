@@ -2,7 +2,7 @@ import { IconWrapper } from "../components/IconWrapper";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
 
 /**
- * Link-Plugin mit verbesserter Funktionalität
+ * Link plugin with improved functionality
  */
 export function createLinkPlugin(): Plugin {
     return {
@@ -17,8 +17,8 @@ export function createLinkPlugin(): Plugin {
                 className={`rte-toolbar-button ${
                     props.isActive ? "rte-toolbar-button-active" : ""
                 }`}
-                title="Link einfügen"
-                aria-label="Link einfügen"
+                title="Insert Link"
+                aria-label="Insert Link"
             >
                 <IconWrapper icon="mdi:link" width={18} height={18} />
             </button>
@@ -34,7 +34,7 @@ export function createLinkPlugin(): Plugin {
                     ? container.parentElement
                     : (container as HTMLElement);
 
-            // Prüfe ob bereits ein Link vorhanden ist
+            // Check if a link already exists
             const existingLink = element?.closest("a") as HTMLAnchorElement;
 
             if (existingLink) {
@@ -56,8 +56,8 @@ export function createLinkPlugin(): Plugin {
                     }
                 }
             } else {
-                // Neuen Link einfügen
-                const url = prompt("URL eingeben:");
+                // Insert new link
+                const url = prompt("Enter URL:");
                 if (url) {
                     editor.executeCommand("createLink", url);
                 }
@@ -118,8 +118,8 @@ export const blockquotePlugin: Plugin = {
             className={`rte-toolbar-button ${
                 props.isActive ? "rte-toolbar-button-active" : ""
             }`}
-            title="Zitat"
-            aria-label="Zitat"
+            title="Quote"
+            aria-label="Quote"
         >
             <IconWrapper icon="mdi:format-quote-close" width={18} height={18} />
         </button>
@@ -181,8 +181,8 @@ export const unorderedListPlugin: Plugin = {
             className={`rte-toolbar-button ${
                 props.isActive ? "rte-toolbar-button-active" : ""
             }`}
-            title="Aufzählungsliste"
-            aria-label="Aufzählungsliste"
+            title="Bullet List"
+            aria-label="Bullet List"
         >
             <IconWrapper
                 icon="mdi:format-list-bulleted"
@@ -219,8 +219,8 @@ export const orderedListPlugin: Plugin = {
             className={`rte-toolbar-button ${
                 props.isActive ? "rte-toolbar-button-active" : ""
             }`}
-            title="Nummerierte Liste"
-            aria-label="Nummerierte Liste"
+            title="Numbered List"
+            aria-label="Numbered List"
         >
             <IconWrapper
                 icon="mdi:format-list-numbered"

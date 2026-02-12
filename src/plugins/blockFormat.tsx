@@ -5,49 +5,82 @@ import { findClosestCheckboxList } from "../utils/dom";
 const defaultHeadings = ["h1", "h2", "h3", "h4", "h5", "h6"];
 
 const headingLabels: Record<string, string> = {
-    h1: "Überschrift 1",
-    h2: "Überschrift 2",
-    h3: "Überschrift 3",
-    h4: "Überschrift 4",
-    h5: "Überschrift 5",
-    h6: "Überschrift 6",
+    h1: "Heading 1",
+    h2: "Heading 2",
+    h3: "Heading 3",
+    h4: "Heading 4",
+    h5: "Heading 5",
+    h6: "Heading 6",
 };
+
+export interface BlockFormatOptions {
+    bulletList?: boolean;
+    numberedList?: boolean;
+    quote?: boolean;
+    codeBlock?: boolean;
+    check?: boolean;
+}
 
 /**
  * Creates a Block Format plugin that combines headings, lists, and quote in a dropdown.
  * @param headings - Array of heading levels (e.g. ["h1", "h2", "h3"])
+ * @param blockOptions - Toggle individual block types (bulletList, numberedList, quote, check, codeBlock)
  */
 export function createBlockFormatPlugin(
-    headings: string[] = defaultHeadings
+    headings: string[] = defaultHeadings,
+    blockOptions: BlockFormatOptions = {}
 ): Plugin {
-    const options = [
+    // Default all block types to true if not specified
+    const showBulletList = blockOptions.bulletList ?? true;
+    const showNumberedList = blockOptions.numberedList ?? true;
+    const showQuote = blockOptions.quote ?? true;
+    const showCodeBlock = blockOptions.codeBlock ?? false;
+    const showCheck = blockOptions.check ?? true;
+
+    const options: { value: string; label: string; headingPreview?: string; icon?: string }[] = [
         { value: "p", label: "Normal", headingPreview: "p" },
         ...headings.map((h) => ({
             value: h,
             label: headingLabels[h] || h.toUpperCase(),
             headingPreview: h,
         })),
-        {
-            value: "ul",
-            label: "Aufzählungsliste",
-            icon: "mdi:format-list-bulleted",
-        },
-        {
-            value: "ol",
-            label: "Nummerierte Liste",
-            icon: "mdi:format-list-numbered",
-        },
-        {
-            value: "checkbox-list",
-            label: "Checkbox-Liste",
-            icon: "mdi:checkbox-marked-outline",
-        },
-        {
-            value: "blockquote",
-            label: "Zitat",
-            icon: "mdi:format-quote-close",
-        },
     ];
+
+    if (showBulletList) {
+        options.push({
+            value: "ul",
+            label: "Bullet List",
+            icon: "mdi:format-list-bulleted",
+        });
+    }
+    if (showNumberedList) {
+        options.push({
+            value: "ol",
+            label: "Numbered List",
+            icon: "mdi:format-list-numbered",
+        });
+    }
+    if (showCheck) {
+        options.push({
+            value: "checkbox-list",
+            label: "Checkbox List",
+            icon: "mdi:checkbox-marked-outline",
+        });
+    }
+    if (showQuote) {
+        options.push({
+            value: "blockquote",
+            label: "Quote",
+            icon: "mdi:format-quote-close",
+        });
+    }
+    if (showCodeBlock) {
+        options.push({
+            value: "code",
+            label: "Code Block",
+            icon: "mdi:code-tags",
+        });
+    }
 
     /** Detects the current block format at the cursor position. */
     function detectCurrentFormat(editor: EditorAPI): string | undefined {

@@ -36,13 +36,13 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
         const src = (rawUrl || imageUrl).trim();
         
         if (!src) {
-          alert('Bitte geben Sie eine Bild-URL ein');
+          alert('Please enter an image URL');
           return;
         }
 
         props.editorAPI.executeCommand('insertImage', src);
 
-        // Modal schließen
+        // Close modal
         setShowModal(false);
         setRawUrl('');
         setImageUrl('');
@@ -54,7 +54,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
         if (!file || !onImageUpload) return;
 
         if (!file.type.startsWith('image/')) {
-          alert('Bitte wählen Sie eine Bilddatei aus');
+          alert('Please select an image file');
           return;
         }
 
@@ -68,7 +68,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
           setImageUrl(getDisplayUrl(uploadedUrl));
         } catch (error) {
           console.error('Image upload failed:', error);
-          alert('Fehler beim Hochladen des Bildes');
+          alert('Error uploading image');
         } finally {
           setIsUploading(false);
           if (fileInputRef.current) {
@@ -84,8 +84,8 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
             onClick={() => setShowModal(true)}
             disabled={props.disabled}
             className="rte-toolbar-button"
-            title="Bild einfügen"
-            aria-label="Bild einfügen"
+            title="Insert Image"
+            aria-label="Insert Image"
           >
             <IconWrapper icon="mdi:image" width={18} height={18} />
           </button>
@@ -101,12 +101,12 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
             >
               <div className="rte-image-modal">
                 <div className="rte-image-modal-header">
-                  <h3>Bild einfügen</h3>
+                  <h3>Insert Image</h3>
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
                     className="rte-image-modal-close"
-                    aria-label="Schließen"
+                    aria-label="Close"
                   >
                     <IconWrapper icon="mdi:close" width={20} height={20} />
                   </button>
@@ -132,7 +132,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                           ) : (
                             <>
                               <IconWrapper icon="mdi:upload" width={24} height={24} />
-                              <span>Datei auswählen</span>
+                              <span>Choose File</span>
                             </>
                           )}
                         </div>
@@ -164,7 +164,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                         type="text"
                         value={altText}
                         onChange={(e) => setAltText(e.target.value)}
-                        placeholder="Bildbeschreibung"
+                        placeholder="Image description"
                         className="rte-image-alt-input"
                       />
                     </label>
@@ -191,7 +191,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                     disabled={!imageUrl.trim() || isUploading}
                     className="rte-image-modal-insert"
                   >
-                    Einfügen
+                    Insert
                   </button>
                 </div>
               </div>
@@ -201,7 +201,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
       );
     },
     execute: (editor: EditorAPI) => {
-      // Wird über renderButton gehandhabt
+      // Handled via renderButton
     },
     canExecute: () => true,
   };

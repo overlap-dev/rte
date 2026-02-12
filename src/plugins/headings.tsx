@@ -5,12 +5,12 @@ import { getCurrentHeading } from "../utils/stateReflection";
 const defaultHeadings = ["h1", "h2", "h3"];
 
 const headingLabels: Record<string, string> = {
-    h1: "Überschrift 1",
-    h2: "Überschrift 2",
-    h3: "Überschrift 3",
-    h4: "Überschrift 4",
-    h5: "Überschrift 5",
-    h6: "Überschrift 6",
+    h1: "Heading 1",
+    h2: "Heading 2",
+    h3: "Heading 3",
+    h4: "Heading 4",
+    h5: "Heading 5",
+    h6: "Heading 6",
 };
 
 export function createHeadingsPlugin(
@@ -45,7 +45,7 @@ export function createHeadingsPlugin(
             return (
                 <Dropdown
                     icon="mdi:format-header-1"
-                    label="Überschrift"
+                    label="Heading"
                     options={options}
                     onSelect={(value) => {
                         if (props.onSelect) {

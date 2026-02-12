@@ -6,10 +6,10 @@ export class HistoryManager {
   private maxHistorySize: number = 50;
 
   push(content: EditorContent): void {
-    // Entferne alle Einträge nach currentIndex (wenn wir zurückgegangen sind)
+    // Remove all entries after currentIndex (when we went back)
     this.history = this.history.slice(0, this.currentIndex + 1);
     
-    // Füge neuen Eintrag hinzu
+    // Add new entry
     this.history.push(JSON.parse(JSON.stringify(content))); // Deep clone
     this.currentIndex++;
     

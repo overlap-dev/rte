@@ -23,6 +23,9 @@ export * from "./types";
 export * from "./utils/content";
 export { contentToHTML, htmlToContent } from "./utils/content";
 
+// Settings
+export * from './utils/settings';
+
 // Other utilities
 export { HistoryManager } from "./utils/history";
 export { indentListItem, outdentListItem } from "./utils/listIndent";

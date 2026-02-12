@@ -1,5 +1,5 @@
 /**
- * Entfernt alle Formatierungen aus der aktuellen Selection
+ * Removes all formatting from the current selection
  */
 export function clearFormatting(selection: Selection): void {
   if (!selection || selection.rangeCount === 0) return;
@@ -10,11 +10,11 @@ export function clearFormatting(selection: Selection): void {
   if (range.collapsed) return;
 
   try {
-    // Verwende document.execCommand für Standard-Formatierungen
+    // Use document.execCommand for standard formatting
     document.execCommand('removeFormat', false);
     document.execCommand('unlink', false);
     
-    // Entferne alle inline styles und Formatierungen manuell
+    // Remove all inline styles and formatting manually
     const walker = document.createTreeWalker(
       range.commonAncestorContainer,
       NodeFilter.SHOW_ELEMENT,
@@ -30,7 +30,7 @@ export function clearFormatting(selection: Selection): void {
         if (range.intersectsNode(el)) {
           const tagName = el.tagName.toLowerCase();
           
-          // Entferne Inline-Formatierungen (strong, em, u, span, a, etc.)
+          // Remove inline formatting (strong, em, u, span, a, etc.)
           if (['strong', 'b', 'em', 'i', 'u', 'span', 'a', 'font'].includes(tagName)) {
             // Ersetze durch Text-Node
             const text = el.textContent || '';
@@ -56,7 +56,7 @@ export function clearFormatting(selection: Selection): void {
       node = walker.nextNode();
     }
     
-    // Normalisiere: Entferne leere Formatierungs-Tags
+    // Normalize: remove empty formatting tags
     const normalizeWalker = document.createTreeWalker(
       range.commonAncestorContainer,
       NodeFilter.SHOW_ELEMENT,
@@ -85,7 +85,7 @@ export function clearFormatting(selection: Selection): void {
 }
 
 /**
- * Entfernt nur Textfarbe
+ * Removes only text color
  */
 export function clearTextColor(selection: Selection): void {
   if (!selection || selection.rangeCount === 0) return;
@@ -122,7 +122,7 @@ export function clearTextColor(selection: Selection): void {
 }
 
 /**
- * Entfernt nur Hintergrundfarbe
+ * Removes only background color
  */
 export function clearBackgroundColor(selection: Selection): void {
   if (!selection || selection.rangeCount === 0) return;
@@ -196,7 +196,7 @@ export function clearFontSize(selection: Selection): void {
 }
 
 /**
- * Entfernt Links (behält Text)
+ * Removes links (keeps text)
  */
 export function clearLinks(selection: Selection): void {
   if (!selection || selection.rangeCount === 0) return;
@@ -230,7 +230,7 @@ export function clearLinks(selection: Selection): void {
     node = walker.nextNode();
   }
   
-  // Entferne Links (behält Text)
+  // Remove links (keep text)
   links.forEach(link => {
     const parent = link.parentNode;
     if (parent) {
