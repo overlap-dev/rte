@@ -5,6 +5,7 @@ import { ensureAllCheckboxes } from "../utils/checkbox";
 import { domToContent } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
+import { getActiveCell, navigateTableCell } from "../utils/table";
 
 interface UseEditorEventsOptions {
     editorRef: React.RefObject<HTMLDivElement | null>;
@@ -58,8 +59,23 @@ export function useEditorEvents({
             // Checkbox keyboard navigation
             if (handleCheckboxKeyDown(e)) return;
 
-            // Tab: indent/outdent in lists
+            // Tab: navigate table cells OR indent/outdent in lists
             if (e.key === "Tab" && !isModifierPressed && !e.altKey) {
+                // Table tab navigation takes priority
+                if (getActiveCell()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    navigateTableCell(e.shiftKey ? "prev" : "next");
+                    setTimeout(() => {
+                        if (editor) {
+                            const content = domToContent(editor);
+                            notifyChange(content);
+                        }
+                    }, 0);
+                    return;
+                }
+
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
@@ -94,6 +110,22 @@ export function useEditorEvents({
                     }, 0);
                     return;
                 }
+            }
+
+            // Cmd/Ctrl+K: trigger link button click (if present in toolbar)
+            if (isModifierPressed && e.key === "k") {
+                e.preventDefault();
+                e.stopPropagation();
+                // Find and click the link button in the toolbar
+                const editorContainer = editor.closest(".rte-container");
+                if (editorContainer) {
+                    const linkBtn =
+                        editorContainer.querySelector(
+                            'button[aria-label="Link"], button[aria-label="Link einfügen"]'
+                        ) as HTMLButtonElement | null;
+                    if (linkBtn) linkBtn.click();
+                }
+                return;
             }
 
             // Undo/Redo shortcuts

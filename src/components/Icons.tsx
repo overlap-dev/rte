@@ -378,6 +378,150 @@ export const CheckboxIcon: React.FC<IconProps> = ({
     </svg>
 );
 
+export const StrikethroughIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M10 19h4v-3h-4v3zM5 4v3h5v3h4V7h5V4H5zM3 14h18v-2H3v2z" />
+    </svg>
+);
+
+export const SubscriptIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M22 18h-2v1h3v1h-4v-2.5c0-.83.67-1.5 1.5-1.5h1.5v-1h-3v-1h2.5c.83 0 1.5.67 1.5 1.5v1c0 .83-.67 1.5-1.5 1.5zM5.88 18h2.66l3.4-5.42h.12l3.4 5.42h2.66l-4.65-7.27L17.81 4h-2.68l-3.07 4.99h-.12L8.87 4H6.19l4.32 6.73L5.88 18z" />
+    </svg>
+);
+
+export const SuperscriptIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M22 7h-2v1h3v1h-4V6.5c0-.83.67-1.5 1.5-1.5h1.5V4h-3V3h2.5c.83 0 1.5.67 1.5 1.5v1c0 .83-.67 1.5-1.5 1.5zM5.88 20h2.66l3.4-5.42h.12l3.4 5.42h2.66l-4.65-7.27L17.81 6h-2.68l-3.07 4.99h-.12L8.87 6H6.19l4.32 6.73L5.88 20z" />
+    </svg>
+);
+
+export const CodeIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" />
+    </svg>
+);
+
+export const AlignLeftIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z" />
+    </svg>
+);
+
+export const AlignCenterIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z" />
+    </svg>
+);
+
+export const AlignRightIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z" />
+    </svg>
+);
+
+export const AlignJustifyIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z" />
+    </svg>
+);
+
+export const TableIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M3 3v18h18V3H3zm8 16H5v-6h6v6zm0-8H5V5h6v6zm8 8h-6v-6h6v6zm0-8h-6V5h6v6z" />
+    </svg>
+);
+
 const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-bold": BoldIcon,
     "mdi:format-italic": ItalicIcon,
@@ -401,6 +545,15 @@ const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-indent-increase": IndentIcon,
     "mdi:format-indent-decrease": OutdentIcon,
     "mdi:checkbox-marked-outline": CheckboxIcon,
+    "mdi:format-strikethrough": StrikethroughIcon,
+    "mdi:format-subscript": SubscriptIcon,
+    "mdi:format-superscript": SuperscriptIcon,
+    "mdi:code-tags": CodeIcon,
+    "mdi:format-align-left": AlignLeftIcon,
+    "mdi:format-align-center": AlignCenterIcon,
+    "mdi:format-align-right": AlignRightIcon,
+    "mdi:format-align-justify": AlignJustifyIcon,
+    "mdi:table": TableIcon,
 };
 
 export const Icon: React.FC<{

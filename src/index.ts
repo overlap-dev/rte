@@ -12,6 +12,9 @@ export * from "./plugins/fontSize";
 export * from "./plugins/headings";
 export * from "./plugins/image";
 export * from "./plugins/optional";
+export * from "./plugins/alignment";
+export * from "./plugins/table";
+export * from "./plugins/linkDialog";
 
 // Types
 export * from "./types";

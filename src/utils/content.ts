@@ -62,10 +62,54 @@ export function domToContent(element: HTMLElement): EditorContent {
             const attributes: Record<string, string> = {};
             const src = el.getAttribute("src");
             const alt = el.getAttribute("alt");
+            const attachmentId = el.getAttribute("data-attachment-id");
             if (src) attributes.src = src;
             if (alt) attributes.alt = alt;
+            if (attachmentId) attributes["data-attachment-id"] = attachmentId;
             return {
                 type: "image",
+                attributes:
+                    Object.keys(attributes).length > 0
+                        ? attributes
+                        : undefined,
+            };
+        }
+
+        // Table elements
+        if (
+            ["table", "thead", "tbody", "tr", "td", "th"].includes(tagName)
+        ) {
+            const children: EditorNode[] = [];
+            const attributes: Record<string, string> = {};
+
+            // Preserve class
+            const cls = el.getAttribute("class");
+            if (cls) attributes.class = cls;
+
+            // Table cell attributes
+            if (tagName === "td" || tagName === "th") {
+                const colspan = el.getAttribute("colspan");
+                const rowspan = el.getAttribute("rowspan");
+                if (colspan && colspan !== "1") attributes.colspan = colspan;
+                if (rowspan && rowspan !== "1") attributes.rowspan = rowspan;
+                // Preserve text-align on cells
+                const textAlign = el.style.textAlign;
+                if (textAlign && textAlign !== "left" && textAlign !== "start") {
+                    attributes.textAlign = textAlign;
+                }
+                // Preserve background-color
+                const bgColor = el.style.backgroundColor;
+                if (bgColor) attributes.backgroundColor = bgColor;
+            }
+
+            Array.from(el.childNodes).forEach((child) => {
+                const processed = processNode(child);
+                if (processed) children.push(processed);
+            });
+
+            return {
+                type: tagName,
+                children: children.length > 0 ? children : [],
                 attributes:
                     Object.keys(attributes).length > 0
                         ? attributes
@@ -92,6 +136,12 @@ export function domToContent(element: HTMLElement): EditorContent {
         ) {
             const children: EditorNode[] = [];
             const attributes: Record<string, string> = {};
+
+            // Preserve text-align on block elements
+            const textAlign = el.style.textAlign;
+            if (textAlign && textAlign !== "left" && textAlign !== "start" && textAlign !== "") {
+                attributes.textAlign = textAlign;
+            }
 
             // Detect checkbox lists (own + Lexical + GitHub formats)
             if (tagName === "ul" && isCheckboxList(el)) {
@@ -153,6 +203,9 @@ export function domToContent(element: HTMLElement): EditorContent {
                 "strike",
                 "a",
                 "span",
+                "sub",
+                "sup",
+                "code",
             ].includes(tagName)
         ) {
             const children: EditorNode[] = [];
@@ -166,16 +219,27 @@ export function domToContent(element: HTMLElement): EditorContent {
                 attributes[attr.name] = attr.value;
             });
 
-            // Links
+            // Links — capture all relevant attributes
             if (tagName === "a") {
+                const linkAttrs: Record<string, string> = {};
                 const href = el.getAttribute("href");
-                if (href) attributes.href = href;
+                if (href) linkAttrs.href = href;
+                const target = el.getAttribute("target");
+                if (target) linkAttrs.target = target;
+                const rel = el.getAttribute("rel");
+                if (rel) linkAttrs.rel = rel;
+                const title = el.getAttribute("title");
+                if (title) linkAttrs.title = title;
+                const pageRef = el.getAttribute("data-page-ref");
+                if (pageRef) linkAttrs["data-page-ref"] = pageRef;
+                const urlExtra = el.getAttribute("data-url-extra");
+                if (urlExtra) linkAttrs["data-url-extra"] = urlExtra;
                 return {
                     type: "link",
                     children: children.length > 0 ? children : undefined,
                     attributes:
-                        Object.keys(attributes).length > 0
-                            ? attributes
+                        Object.keys(linkAttrs).length > 0
+                            ? linkAttrs
                             : undefined,
                 };
             }
@@ -245,6 +309,12 @@ export function domToContent(element: HTMLElement): EditorContent {
                       tagName === "del" ||
                       tagName === "strike"
                     ? "strikethrough"
+                    : tagName === "sub"
+                    ? "subscript"
+                    : tagName === "sup"
+                    ? "superscript"
+                    : tagName === "code"
+                    ? "code"
                     : tagName;
 
             return {
@@ -327,6 +397,9 @@ export function contentToDOM(
             underline: "u",
             strikethrough: "s",
             link: "a",
+            subscript: "sub",
+            superscript: "sup",
+            code: "code",
         };
 
         let tagName = tagMap[node.type] || node.type;
@@ -348,14 +421,39 @@ export function contentToDOM(
                     element.style.color = value;
                 } else if (key === "backgroundColor") {
                     element.style.backgroundColor = value;
+                } else if (key === "textAlign") {
+                    element.style.textAlign = value;
                 } else if (key === "href" && tagName === "a") {
                     element.setAttribute("href", value);
+                } else if (key === "target" && tagName === "a") {
+                    element.setAttribute("target", value);
+                } else if (key === "rel" && tagName === "a") {
+                    element.setAttribute("rel", value);
+                } else if (key === "title" && tagName === "a") {
+                    element.setAttribute("title", value);
+                } else if (key === "data-page-ref" && tagName === "a") {
+                    element.setAttribute("data-page-ref", value);
+                } else if (key === "data-url-extra" && tagName === "a") {
+                    element.setAttribute("data-url-extra", value);
+                } else if (key === "data-attachment-id") {
+                    element.setAttribute("data-attachment-id", value);
+                } else if (key === "colspan") {
+                    element.setAttribute("colspan", value);
+                } else if (key === "rowspan") {
+                    element.setAttribute("rowspan", value);
                 } else if (key === "class") {
                     element.className = value;
+                } else if (key === "checkboxChecked") {
+                    // Handled separately below
                 } else {
                     element.setAttribute(key, value);
                 }
             });
+        }
+
+        // Ensure tables have the rte-table class
+        if (node.type === "table" && !element.classList.contains("rte-table")) {
+            element.classList.add("rte-table");
         }
 
         if (node.children) {
