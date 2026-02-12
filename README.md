@@ -1,6 +1,12 @@
-# HENDRIKS-RTE
+# @overlap/rte
 
 A lightweight, extensible Rich Text Editor for React.
+
+## Installation
+
+```bash
+npm install @overlap/rte
+```
 
 ## Features
 
@@ -10,13 +16,14 @@ A lightweight, extensible Rich Text Editor for React.
 -   ✅ **Undo/Redo**: Full history support
 -   ✅ **JSON data model**: Structured export/import
 -   ✅ **TypeScript**: Fully typed
+-   ✅ **Vite & Deno compatible**: ESM module support
 
 ## Basic Usage
 
 ```tsx
 import React, { useState } from "react";
-import { Editor, EditorContent } from "hendriks-rte";
-import "hendriks-rte/dist/styles.css"; // CSS importieren
+import { Editor, EditorContent } from "@overlap/rte";
+import "@overlap/rte/dist/styles.css"; // CSS importieren
 
 function App() {
     const [content, setContent] = useState<EditorContent | undefined>();
@@ -34,13 +41,13 @@ function App() {
 }
 ```
 
-**Note:** The CSS is automatically imported with the Editor when you use it. If you want to import the CSS separately, you can use `import 'hendriks-rte/dist/styles.css'`.
+**Note:** The CSS must be imported separately. Import it with `import '@overlap/rte/dist/styles.css'`.
 
 ## With Custom Plugins
 
 ```tsx
 import React from "react";
-import { Editor, Plugin, EditorAPI, ButtonProps } from "hendriks-rte";
+import { Editor, Plugin, EditorAPI, ButtonProps } from "@overlap/rte";
 
 // Create custom plugin
 const customPlugin: Plugin = {
@@ -77,23 +84,10 @@ function App() {
 
 ```tsx
 import React from "react";
-import {
-    Editor,
-    defaultPlugins,
-    linkPlugin,
-    blockquotePlugin,
-    unorderedListPlugin,
-    orderedListPlugin,
-} from "hendriks-rte";
+import { Editor, defaultPlugins, linkPlugin } from "@overlap/rte";
 
 function App() {
-    const allPlugins = [
-        ...defaultPlugins,
-        linkPlugin,
-        blockquotePlugin,
-        unorderedListPlugin,
-        orderedListPlugin,
-    ];
+    const allPlugins = [...defaultPlugins, linkPlugin];
 
     return (
         <Editor
@@ -104,19 +98,31 @@ function App() {
 }
 ```
 
+**Note:** The `defaultPlugins` already include block formatting (headings, lists, blockquote) in a single dropdown. You can customize which headings are available using the `headings` prop:
+
+```tsx
+<Editor
+    headings={["h1", "h2", "h3", "h4"]} // Customize available headings
+    plugins={allPlugins}
+    onChange={(content) => console.log(content)}
+/>
+```
+
 ## API
 
 ### Editor Props
 
-| Prop               | Type                                | Description                                |
-| ------------------ | ----------------------------------- | ------------------------------------------ |
-| `initialContent`   | `EditorContent?`                    | Initial editor content                     |
-| `onChange`         | `(content: EditorContent) => void?` | Callback on changes                        |
-| `plugins`          | `Plugin[]?`                         | Array of plugins (default: defaultPlugins) |
-| `placeholder`      | `string?`                           | Placeholder text                           |
-| `className`        | `string?`                           | CSS class for container                    |
-| `toolbarClassName` | `string?`                           | CSS class for toolbar                      |
-| `editorClassName`  | `string?`                           | CSS class for editor                       |
+| Prop               | Type                                | Description                                            |
+| ------------------ | ----------------------------------- | ------------------------------------------------------ |
+| `initialContent`   | `EditorContent?`                    | Initial editor content                                 |
+| `onChange`         | `(content: EditorContent) => void?` | Callback on changes                                    |
+| `plugins`          | `Plugin[]?`                         | Array of plugins (default: defaultPlugins)             |
+| `headings`         | `string[]?`                         | Available heading levels (default: ["h1", "h2", "h3"]) |
+| `placeholder`      | `string?`                           | Placeholder text                                       |
+| `className`        | `string?`                           | CSS class for container                                |
+| `toolbarClassName` | `string?`                           | CSS class for toolbar                                  |
+| `editorClassName`  | `string?`                           | CSS class for editor                                   |
+| `onImageUpload`    | `(file: File) => Promise<string>?`  | Callback for image uploads                             |
 
 ### EditorContent
 
@@ -147,6 +153,8 @@ The EditorAPI is passed to plugins and provides the following methods:
 -   `redo(): void` - Redoes the last action
 -   `canUndo(): boolean` - Checks if undo is possible
 -   `canRedo(): boolean` - Checks if redo is possible
+-   `indentListItem(): void` - Indents a list item (creates sub-list)
+-   `outdentListItem(): void` - Outdents a list item
 
 ### Plugin Interface
 
@@ -164,26 +172,30 @@ interface Plugin {
 
 ## Default Plugins
 
--   `boldPlugin` - Bold
--   `italicPlugin` - Italic
--   `underlinePlugin` - Underline
--   `undoPlugin` - Undo
--   `redoPlugin` - Redo
+The `defaultPlugins` include:
+
+-   **Bold, Italic, Underline** - Text formatting
+-   **Undo/Redo** - History management
+-   **Block Format Dropdown** - Headings (h1-h3 by default), Lists (ul, ol), Blockquote
+-   **Clear Formatting** - Remove all formatting
+-   **Indent/Outdent** - List indentation (Tab/Shift+Tab)
 
 ## Optional Plugins
 
--   `linkPlugin` - Insert links
--   `blockquotePlugin` - Blockquotes
--   `unorderedListPlugin` - Unordered list
--   `orderedListPlugin` - Ordered list
+-   `linkPlugin` - Insert and edit links
+-   `createFontSizePlugin` - Font size selector
+-   `createColorPlugin` - Text color picker
+-   `createBackgroundColorPlugin` - Background color picker
+-   `createImagePlugin` - Image upload
+-   `createHeadingsPlugin` - Custom heading levels (if not using default block format)
 
 ## Creating Plugins
 
 ### Example: Simple Inline Plugin
 
 ```typescript
-import { Plugin, EditorAPI, ButtonProps } from "hendriks-rte";
-import { createInlinePlugin } from "hendriks-rte/plugins/base";
+import { Plugin, EditorAPI, ButtonProps } from "@overlap/rte";
+import { createInlinePlugin } from "@overlap/rte";
 
 const myPlugin = createInlinePlugin(
     "myPlugin",

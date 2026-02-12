@@ -4,7 +4,7 @@ import { createCommandPlugin, createInlinePlugin } from "./base";
 import { createBlockFormatPlugin } from "./blockFormat";
 import { clearFormattingPlugin } from "./clearFormatting";
 
-const defaultHeadings = ["h1", "h2", "h3"];
+const defaultHeadings = ["h1", "h2", "h3", "h4", "h5", "h6"];
 
 /**
  * Standard-Plugins
@@ -151,10 +151,10 @@ const defaultBlockFormatPlugin = createBlockFormatPlugin(defaultHeadings);
 export const defaultPlugins: Plugin[] = [
     undoPlugin,
     redoPlugin,
+    defaultBlockFormatPlugin,
     boldPlugin,
     italicPlugin,
     underlinePlugin,
-    defaultBlockFormatPlugin,
     clearFormattingPlugin,
     _indentPlugin,
     _outdentPlugin,

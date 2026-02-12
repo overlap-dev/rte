@@ -8,6 +8,7 @@ import {
 import { createFontSizePlugin } from "../plugins/fontSize";
 import { createImagePlugin } from "../plugins/image";
 import { EditorAPI, EditorContent, EditorProps } from "../types";
+import { ensureAllCheckboxes } from "../utils/checkbox";
 import {
     clearBackgroundColor,
     clearFontSize,
@@ -24,6 +25,10 @@ import {
 } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
+import { useCheckbox } from "../hooks/useCheckbox";
+import { useEditorEvents } from "../hooks/useEditorEvents";
+import { useEditorInit } from "../hooks/useEditorInit";
+import { useEditorSelection } from "../hooks/useEditorSelection";
 import { Toolbar } from "./Toolbar";
 
 export const Editor: React.FC<EditorProps> = ({
@@ -44,11 +49,51 @@ export const Editor: React.FC<EditorProps> = ({
     theme,
     onImageUpload,
 }) => {
+    // --- Shared Refs ---
+    const editorRef = useRef<HTMLDivElement>(null);
+    const historyRef = useRef<HistoryManager>(new HistoryManager());
+    const isUpdatingRef = useRef(false);
+
+    // --- Plugins ---
     const plugins = useMemo(() => {
         const allPlugins = [...(providedPlugins || defaultPlugins)];
 
+        if (headings && headings.length > 0) {
+            const blockFormatIndex = allPlugins.findIndex(
+                (p) => p.name === "blockFormat"
+            );
+            if (blockFormatIndex !== -1) {
+                allPlugins[blockFormatIndex] =
+                    createBlockFormatPlugin(headings);
+            } else {
+                const redoIndex = allPlugins.findIndex(
+                    (p) => p.name === "redo"
+                );
+                if (redoIndex !== -1) {
+                    allPlugins.splice(
+                        redoIndex + 1,
+                        0,
+                        createBlockFormatPlugin(headings)
+                    );
+                } else {
+                    allPlugins.push(createBlockFormatPlugin(headings));
+                }
+            }
+        }
+
         if (fontSizes && fontSizes.length > 0) {
-            allPlugins.push(createFontSizePlugin(fontSizes));
+            const blockFormatIndex = allPlugins.findIndex(
+                (p) => p.name === "blockFormat"
+            );
+            if (blockFormatIndex !== -1) {
+                allPlugins.splice(
+                    blockFormatIndex + 1,
+                    0,
+                    createFontSizePlugin(fontSizes)
+                );
+            } else {
+                allPlugins.push(createFontSizePlugin(fontSizes));
+            }
         }
 
         if (colors && colors.length > 0) {
@@ -56,259 +101,134 @@ export const Editor: React.FC<EditorProps> = ({
             allPlugins.push(createBackgroundColorPlugin(colors));
         }
 
-        // BlockFormat Plugin ist bereits in defaultPlugins enthalten
-        // Wenn custom headings angegeben sind, ersetze das Standard-Plugin
-        if (headings && headings.length > 0) {
-            // Entferne das Standard-BlockFormat-Plugin
-            const blockFormatIndex = allPlugins.findIndex(
-                (p) => p.name === "blockFormat"
-            );
-            if (blockFormatIndex !== -1) {
-                allPlugins.splice(blockFormatIndex, 1);
-            }
-            // Füge das Plugin mit custom Headlines hinzu
-            allPlugins.push(createBlockFormatPlugin(headings));
-        }
-
         allPlugins.push(createImagePlugin(onImageUpload));
 
         return allPlugins;
     }, [providedPlugins, fontSizes, colors, headings, onImageUpload]);
-    const editorRef = useRef<HTMLDivElement>(null);
-    const historyRef = useRef<HistoryManager>(new HistoryManager());
-    const isUpdatingRef = useRef(false);
 
+    // --- Callbacks ---
     const notifyChange = useCallback(
         (content: EditorContent) => {
-            if (onChange && !isUpdatingRef.current) {
-                onChange(content);
-            }
+            if (onChange) onChange(content);
         },
         [onChange]
     );
 
-    const restoreSelection = useCallback((editor: HTMLElement) => {
-        if (typeof window === "undefined" || typeof document === "undefined")
-            return;
-        const range = document.createRange();
-        const selection = window.getSelection();
-
-        if (editor.firstChild) {
-            range.setStart(editor.firstChild, 0);
-            range.collapse(true);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-        }
+    const getDomContent = useCallback((): EditorContent => {
+        const editor = editorRef.current;
+        if (!editor) return createEmptyContent();
+        return domToContent(editor);
     }, []);
 
+    const pushToHistory = useCallback((content: EditorContent) => {
+        historyRef.current.push(content);
+    }, []);
+
+    // --- Hooks ---
+    const { restoreSelection } = useEditorSelection();
+
+    const checkbox = useCheckbox({
+        editorRef,
+        isUpdatingRef,
+        pushToHistory,
+        notifyChange,
+        getDomContent,
+    });
+
+    // --- Undo / Redo ---
+    const undo = useCallback(() => {
+        const content = historyRef.current.undo();
+        const editor = editorRef.current;
+        if (content && editor) {
+            isUpdatingRef.current = true;
+            contentToDOM(
+                content,
+                editor,
+                customLinkComponent,
+                customHeadingRenderer
+            );
+            restoreSelection(editor);
+            isUpdatingRef.current = false;
+            notifyChange(content);
+        }
+    }, [
+        customLinkComponent,
+        customHeadingRenderer,
+        restoreSelection,
+        notifyChange,
+    ]);
+
+    const redo = useCallback(() => {
+        const content = historyRef.current.redo();
+        const editor = editorRef.current;
+        if (content && editor) {
+            isUpdatingRef.current = true;
+            contentToDOM(
+                content,
+                editor,
+                customLinkComponent,
+                customHeadingRenderer
+            );
+            restoreSelection(editor);
+            isUpdatingRef.current = false;
+            notifyChange(content);
+        }
+    }, [
+        customLinkComponent,
+        customHeadingRenderer,
+        restoreSelection,
+        notifyChange,
+    ]);
+
+    // --- Editor API ---
     const editorAPI = useMemo<EditorAPI>(() => {
         const executeCommand = (command: string, value?: string): boolean => {
             const editor = editorRef.current;
             if (!editor) return false;
 
+            // Save history before non-history commands
             if (
                 command !== "undo" &&
                 command !== "redo" &&
-                command !== "insertImage"
+                command !== "insertImage" &&
+                command !== "insertCheckboxList"
             ) {
                 const currentContent = domToContent(editor);
                 historyRef.current.push(currentContent);
             }
 
             if (command === "undo") {
-                const content = historyRef.current.undo();
-                if (content && editor) {
-                    isUpdatingRef.current = true;
-                    contentToDOM(
-                        content,
-                        editor,
-                        customLinkComponent,
-                        customHeadingRenderer
-                    );
-                    restoreSelection(editor);
-                    isUpdatingRef.current = false;
-                    notifyChange(content);
-                }
+                undo();
                 return true;
             }
 
             if (command === "redo") {
-                const content = historyRef.current.redo();
-                if (content && editor) {
-                    isUpdatingRef.current = true;
-                    contentToDOM(
-                        content,
-                        editor,
-                        customLinkComponent,
-                        customHeadingRenderer
-                    );
-                    restoreSelection(editor);
-                    isUpdatingRef.current = false;
-                    notifyChange(content);
-                }
+                redo();
                 return true;
+            }
+
+            if (command === "insertCheckboxList") {
+                return checkbox.insertCheckboxList(editor);
             }
 
             if (command === "insertImage" && value) {
-                let selection = window.getSelection();
-                if (!selection) return false;
-
-                if (document.activeElement !== editor) {
-                    editor.focus();
-                }
-
-                if (selection.rangeCount === 0) {
-                    const range = document.createRange();
-                    if (editor.childNodes.length > 0) {
-                        const lastChild =
-                            editor.childNodes[editor.childNodes.length - 1];
-                        range.setStartAfter(lastChild);
-                        range.collapse(true);
-                    } else {
-                        const img = document.createElement("img");
-                        img.setAttribute("src", value);
-                        img.setAttribute("alt", "");
-                        img.style.maxWidth = "100%";
-                        img.style.height = "auto";
-                        img.style.display = "block";
-                        img.style.margin = "16px 0";
-                        editor.appendChild(img);
-
-                        const newRange = document.createRange();
-                        newRange.setStartAfter(img);
-                        newRange.collapse(true);
-                        selection.removeAllRanges();
-                        selection.addRange(newRange);
-
-                        isUpdatingRef.current = true;
-                        setTimeout(() => {
-                            if (editor) {
-                                const currentContent = domToContent(editor);
-                                historyRef.current.push(currentContent);
-                                isUpdatingRef.current = false;
-                                notifyChange(currentContent);
-                            }
-                        }, 0);
-                        return true;
-                    }
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-
-                if (selection.rangeCount === 0) return false;
-                const range = selection.getRangeAt(0);
-
-                const container = range.commonAncestorContainer;
-                let parentElement: HTMLElement | null = null;
-
-                if (container.nodeType === Node.TEXT_NODE) {
-                    parentElement = container.parentElement;
-                } else if (container.nodeType === Node.ELEMENT_NODE) {
-                    parentElement = container as HTMLElement;
-                }
-
-                const img = document.createElement("img");
-                img.setAttribute("src", value);
-                img.setAttribute("alt", "");
-                img.style.maxWidth = "100%";
-                img.style.height = "auto";
-                img.style.display = "block";
-                img.style.margin = "16px 0";
-
-                if (
-                    parentElement &&
-                    parentElement !== editor &&
-                    (parentElement.tagName === "P" ||
-                        parentElement.tagName === "DIV" ||
-                        parentElement.tagName === "H1" ||
-                        parentElement.tagName === "H2" ||
-                        parentElement.tagName === "H3" ||
-                        parentElement.tagName === "H4" ||
-                        parentElement.tagName === "H5" ||
-                        parentElement.tagName === "H6")
-                ) {
-                    if (parentElement.nextSibling) {
-                        editor.insertBefore(img, parentElement.nextSibling);
-                    } else {
-                        editor.appendChild(img);
-                    }
-                } else {
-                    try {
-                        range.insertNode(img);
-                    } catch (e) {
-                        editor.appendChild(img);
-                    }
-                }
-
-                const newRange = document.createRange();
-                newRange.setStartAfter(img);
-                newRange.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(newRange);
-
-                isUpdatingRef.current = true;
-                setTimeout(() => {
-                    if (editor) {
-                        const currentContent = domToContent(editor);
-                        historyRef.current.push(currentContent);
-                        isUpdatingRef.current = false;
-                        notifyChange(currentContent);
-                    }
-                }, 0);
-
-                return true;
+                return handleInsertImage(
+                    editor,
+                    value,
+                    isUpdatingRef,
+                    historyRef,
+                    notifyChange
+                );
             }
 
-            const selection = window.getSelection();
-            let savedRange: Range | null = null;
-
-            if (selection && selection.rangeCount > 0) {
-                savedRange = selection.getRangeAt(0).cloneRange();
-            }
-
-            if (document.activeElement !== editor) {
-                editor.focus();
-            }
-
-            if (!selection || selection.rangeCount === 0) {
-                const range = document.createRange();
-
-                if (editor.childNodes.length > 0) {
-                    const lastChild =
-                        editor.childNodes[editor.childNodes.length - 1];
-                    if (lastChild.nodeType === Node.TEXT_NODE) {
-                        range.setStart(
-                            lastChild,
-                            lastChild.textContent?.length || 0
-                        );
-                        range.setEnd(
-                            lastChild,
-                            lastChild.textContent?.length || 0
-                        );
-                    } else {
-                        range.selectNodeContents(lastChild);
-                        range.collapse(false);
-                    }
-                } else {
-                    const p = document.createElement("p");
-                    editor.appendChild(p);
-                    const textNode = document.createTextNode("");
-                    p.appendChild(textNode);
-                    range.setStart(textNode, 0);
-                    range.setEnd(textNode, 0);
-                }
-
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-            } else if (savedRange) {
-                selection.removeAllRanges();
-                selection.addRange(savedRange);
-            }
+            // General commands via document.execCommand
+            ensureEditorFocused(editor);
 
             document.execCommand(command, false, value);
 
             setTimeout(() => {
                 if (editor && !isUpdatingRef.current) {
+                    ensureAllCheckboxes(editor);
                     const content = domToContent(editor);
                     notifyChange(content);
                 }
@@ -328,13 +248,13 @@ export const Editor: React.FC<EditorProps> = ({
             getContent: (): EditorContent => {
                 const editor = editorRef.current;
                 if (!editor) return createEmptyContent();
+                ensureAllCheckboxes(editor);
                 return domToContent(editor);
             },
 
             setContent: (content: EditorContent): void => {
                 const editor = editorRef.current;
                 if (!editor) return;
-
                 isUpdatingRef.current = true;
                 contentToDOM(
                     content,
@@ -353,31 +273,22 @@ export const Editor: React.FC<EditorProps> = ({
             ): void => {
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0) return;
-
                 const range = selection.getRangeAt(0);
                 const block = document.createElement(type);
-
                 if (attributes) {
-                    Object.entries(attributes).forEach(([key, value]) => {
-                        block.setAttribute(key, value);
+                    Object.entries(attributes).forEach(([key, val]) => {
+                        block.setAttribute(key, val);
                     });
                 }
-
                 range.insertNode(block);
-                const textNode = document.createTextNode("\u200B"); // Zero-width space
+                const textNode = document.createTextNode("\u200B");
                 block.appendChild(textNode);
-
-                // Cursor setzen
                 range.setStartAfter(textNode);
                 range.collapse(true);
                 selection.removeAllRanges();
                 selection.addRange(range);
-
                 const editor = editorRef.current;
-                if (editor) {
-                    const content = domToContent(editor);
-                    notifyChange(content);
-                }
+                if (editor) notifyChange(domToContent(editor));
             },
 
             insertInline: (
@@ -386,53 +297,32 @@ export const Editor: React.FC<EditorProps> = ({
             ): void => {
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0) return;
-
                 const range = selection.getRangeAt(0);
                 const inline = document.createElement(type);
-
                 if (attributes) {
-                    Object.entries(attributes).forEach(([key, value]) => {
-                        inline.setAttribute(key, value);
+                    Object.entries(attributes).forEach(([key, val]) => {
+                        inline.setAttribute(key, val);
                     });
                 }
-
                 try {
                     range.surroundContents(inline);
-                } catch (e) {
-                    // Falls surroundContents fehlschlägt, versuche es anders
+                } catch (_) {
                     const contents = range.extractContents();
                     inline.appendChild(contents);
                     range.insertNode(inline);
                 }
-
-                // Cursor setzen
                 range.setStartAfter(inline);
                 range.collapse(true);
                 selection.removeAllRanges();
                 selection.addRange(range);
-
                 const editor = editorRef.current;
-                if (editor) {
-                    const content = domToContent(editor);
-                    notifyChange(content);
-                }
+                if (editor) notifyChange(domToContent(editor));
             },
 
-            undo: (): void => {
-                executeCommand("undo");
-            },
-
-            redo: (): void => {
-                executeCommand("redo");
-            },
-
-            canUndo: (): boolean => {
-                return historyRef.current.canUndo();
-            },
-
-            canRedo: (): boolean => {
-                return historyRef.current.canRedo();
-            },
+            undo: (): void => undo(),
+            redo: (): void => redo(),
+            canUndo: (): boolean => historyRef.current.canUndo(),
+            canRedo: (): boolean => historyRef.current.canRedo(),
 
             importHtml: (htmlString: string): EditorContent => {
                 const content = htmlToContent(htmlString);
@@ -455,280 +345,89 @@ export const Editor: React.FC<EditorProps> = ({
             exportHtml: (): string => {
                 const editor = editorRef.current;
                 if (!editor) return "";
-                const content = domToContent(editor);
-                return contentToHTML(content);
+                return contentToHTML(domToContent(editor));
             },
 
             clearFormatting: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    clearFormatting(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) => clearFormatting(selection));
             },
-
             clearTextColor: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    clearTextColor(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) => clearTextColor(selection));
             },
-
             clearBackgroundColor: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    clearBackgroundColor(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) =>
+                    clearBackgroundColor(selection)
+                );
             },
-
             clearFontSize: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    clearFontSize(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) => clearFontSize(selection));
             },
-
             clearLinks: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    clearLinks(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) => clearLinks(selection));
             },
-
             indentListItem: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    indentListItem(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) => indentListItem(selection));
             },
-
             outdentListItem: (): void => {
-                const editor = editorRef.current;
-                if (!editor) return;
-
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    outdentListItem(selection);
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                }
+                executeWithHistory((selection) => outdentListItem(selection));
             },
         };
+
+        /** Helper: push history, execute operation, then notify change. */
+        function executeWithHistory(
+            operation: (selection: Selection) => void
+        ): void {
+            const editor = editorRef.current;
+            if (!editor) return;
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+            const currentContent = domToContent(editor);
+            historyRef.current.push(currentContent);
+            operation(selection);
+            setTimeout(() => {
+                if (editor) notifyChange(domToContent(editor));
+            }, 0);
+        }
     }, [
+        undo,
+        redo,
+        checkbox,
         notifyChange,
-        restoreSelection,
         customLinkComponent,
         customHeadingRenderer,
     ]);
 
+    // --- Initialize editor ---
+    useEditorInit({
+        editorRef,
+        historyRef,
+        isUpdatingRef,
+        initialContent,
+        notifyChange,
+        customLinkComponent,
+        customHeadingRenderer,
+    });
+
+    // --- Set up event listeners ---
+    useEditorEvents({
+        editorRef,
+        historyRef,
+        isUpdatingRef,
+        notifyChange,
+        handleCheckboxKeyDown: checkbox.handleCheckboxKeyDown,
+        handleCheckboxEnter: checkbox.handleCheckboxEnter,
+        undo,
+        redo,
+    });
+
+    // --- Expose editor API ---
     useEffect(() => {
-        if (onEditorAPIReady) {
-            onEditorAPIReady(editorAPI);
-        }
+        if (onEditorAPIReady) onEditorAPIReady(editorAPI);
     }, [editorAPI, onEditorAPIReady]);
 
-    const isInitializedRef = useRef(false);
-
-    useEffect(() => {
-        const editor = editorRef.current;
-        if (!editor || isInitializedRef.current) return;
-
-        const content = initialContent || createEmptyContent();
-        isUpdatingRef.current = true;
-        contentToDOM(
-            content,
-            editor,
-            customLinkComponent,
-            customHeadingRenderer
-        );
-        historyRef.current.push(content);
-        isUpdatingRef.current = false;
-        isInitializedRef.current = true;
-
-        let inputTimeout: ReturnType<typeof setTimeout> | null = null;
-        const handleInput = () => {
-            if (isUpdatingRef.current) return;
-
-            const content = domToContent(editor);
-            notifyChange(content);
-
-            if (inputTimeout) {
-                clearTimeout(inputTimeout);
-            }
-            inputTimeout = setTimeout(() => {
-                historyRef.current.push(content);
-                inputTimeout = null;
-            }, 300);
-        };
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isModifierPressed = e.metaKey || e.ctrlKey;
-
-            if (e.key === "Tab" && !isModifierPressed && !e.altKey) {
-                // Immer preventDefault aufrufen (wie Lexical), damit Tab den Fokus nicht aus dem Editor entfernt
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-
-                const selection = window.getSelection();
-
-                if (!selection || selection.rangeCount === 0) {
-                    // Keine Selection: Tab verhindern, Fokus bleibt im Editor
-                    return;
-                }
-
-                const range = selection.getRangeAt(0);
-                const container = range.commonAncestorContainer;
-
-                if (!editor.contains(container)) {
-                    // Container nicht im Editor: Tab verhindern
-                    return;
-                }
-
-                // Prüfe ob wir in einer Liste sind
-                const listItem =
-                    container.nodeType === Node.TEXT_NODE
-                        ? container.parentElement?.closest("li")
-                        : (container as HTMLElement).closest("li");
-
-                if (listItem && editor.contains(listItem)) {
-                    // In Liste: Indent/Outdent durchführen
-                    const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
-
-                    if (e.shiftKey) {
-                        outdentListItem(selection);
-                    } else {
-                        indentListItem(selection);
-                    }
-
-                    setTimeout(() => {
-                        if (editor) {
-                            const content = domToContent(editor);
-                            notifyChange(content);
-                        }
-                    }, 0);
-                    return;
-                }
-
-                // Nicht in Liste: Tab verhindern, aber kein Tab-Zeichen einfügen
-                // Der Fokus bleibt im Editor (durch preventDefault)
-            }
-
-            if (isModifierPressed && e.key === "z" && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                editorAPI.undo();
-            } else if (
-                isModifierPressed &&
-                (e.key === "y" || (e.key === "z" && e.shiftKey))
-            ) {
-                e.preventDefault();
-                e.stopPropagation();
-                editorAPI.redo();
-            }
-        };
-
-        editor.addEventListener("input", handleInput);
-        editor.addEventListener("keydown", handleKeyDown, true);
-
-        return () => {
-            editor.removeEventListener("input", handleInput);
-            editor.removeEventListener("keydown", handleKeyDown, true);
-            if (inputTimeout) {
-                clearTimeout(inputTimeout);
-            }
-        };
-    }, [editorAPI, notifyChange]);
-
+    // --- Paste handler ---
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
-
         const html = e.clipboardData.getData("text/html");
         const text = e.clipboardData.getData("text/plain");
 
@@ -741,7 +440,6 @@ export const Editor: React.FC<EditorProps> = ({
                 const selection = window.getSelection();
                 if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
-
                     range.deleteContents();
 
                     const tempDiv = document.createElement("div");
@@ -758,24 +456,23 @@ export const Editor: React.FC<EditorProps> = ({
                     }
 
                     range.insertNode(fragment);
-
                     if (fragment.lastChild) {
                         range.setStartAfter(fragment.lastChild);
                         range.collapse(true);
                     }
                     selection.removeAllRanges();
                     selection.addRange(range);
-
-                    const content = domToContent(editor);
-                    notifyChange(content);
+                    notifyChange(domToContent(editor));
                 }
-            } catch (error) {
+            } catch (_) {
                 document.execCommand("insertText", false, text);
             }
         } else if (text) {
             document.execCommand("insertText", false, text);
         }
     };
+
+    // --- Theme styles ---
     const containerStyle: React.CSSProperties = theme
         ? {
               ...(theme.borderColor &&
@@ -826,3 +523,152 @@ export const Editor: React.FC<EditorProps> = ({
         </div>
     );
 };
+
+// --- Helper: Insert Image ---
+function handleInsertImage(
+    editor: HTMLElement,
+    value: string,
+    isUpdatingRef: React.MutableRefObject<boolean>,
+    historyRef: React.MutableRefObject<HistoryManager>,
+    notifyChange: (content: EditorContent) => void
+): boolean {
+    let selection = window.getSelection();
+    if (!selection) return false;
+
+    if (document.activeElement !== editor) {
+        editor.focus();
+    }
+
+    if (selection.rangeCount === 0) {
+        const range = document.createRange();
+        if (editor.childNodes.length > 0) {
+            const lastChild = editor.childNodes[editor.childNodes.length - 1];
+            range.setStartAfter(lastChild);
+            range.collapse(true);
+        } else {
+            const img = createImageElement(value);
+            editor.appendChild(img);
+            const newRange = document.createRange();
+            newRange.setStartAfter(img);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            saveAndNotify(editor, isUpdatingRef, historyRef, notifyChange);
+            return true;
+        }
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    if (selection.rangeCount === 0) return false;
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    let parentElement: HTMLElement | null = null;
+
+    if (container.nodeType === Node.TEXT_NODE) {
+        parentElement = container.parentElement;
+    } else if (container.nodeType === Node.ELEMENT_NODE) {
+        parentElement = container as HTMLElement;
+    }
+
+    const img = createImageElement(value);
+
+    if (
+        parentElement &&
+        parentElement !== editor &&
+        /^(P|DIV|H[1-6])$/.test(parentElement.tagName)
+    ) {
+        if (parentElement.nextSibling) {
+            editor.insertBefore(img, parentElement.nextSibling);
+        } else {
+            editor.appendChild(img);
+        }
+    } else {
+        try {
+            range.insertNode(img);
+        } catch (_) {
+            editor.appendChild(img);
+        }
+    }
+
+    const newRange = document.createRange();
+    newRange.setStartAfter(img);
+    newRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+
+    saveAndNotify(editor, isUpdatingRef, historyRef, notifyChange);
+    return true;
+}
+
+function createImageElement(src: string): HTMLImageElement {
+    const img = document.createElement("img");
+    img.setAttribute("src", src);
+    img.setAttribute("alt", "");
+    img.style.maxWidth = "100%";
+    img.style.height = "auto";
+    img.style.display = "block";
+    img.style.margin = "16px 0";
+    return img;
+}
+
+function saveAndNotify(
+    editor: HTMLElement,
+    isUpdatingRef: React.MutableRefObject<boolean>,
+    historyRef: React.MutableRefObject<HistoryManager>,
+    notifyChange: (content: EditorContent) => void
+): void {
+    isUpdatingRef.current = true;
+    setTimeout(() => {
+        const content = domToContent(editor);
+        historyRef.current.push(content);
+        isUpdatingRef.current = false;
+        notifyChange(content);
+    }, 0);
+}
+
+/** Ensures the editor is focused and has a valid selection. */
+function ensureEditorFocused(editor: HTMLElement): void {
+    const selection = window.getSelection();
+    let savedRange: Range | null = null;
+
+    if (selection && selection.rangeCount > 0) {
+        savedRange = selection.getRangeAt(0).cloneRange();
+    }
+
+    if (document.activeElement !== editor) {
+        editor.focus();
+    }
+
+    if (!selection || selection.rangeCount === 0) {
+        const range = document.createRange();
+        if (editor.childNodes.length > 0) {
+            const lastChild = editor.childNodes[editor.childNodes.length - 1];
+            if (lastChild.nodeType === Node.TEXT_NODE) {
+                range.setStart(
+                    lastChild,
+                    lastChild.textContent?.length || 0
+                );
+                range.setEnd(
+                    lastChild,
+                    lastChild.textContent?.length || 0
+                );
+            } else {
+                range.selectNodeContents(lastChild);
+                range.collapse(false);
+            }
+        } else {
+            const p = document.createElement("p");
+            editor.appendChild(p);
+            const textNode = document.createTextNode("");
+            p.appendChild(textNode);
+            range.setStart(textNode, 0);
+            range.setEnd(textNode, 0);
+        }
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+    } else if (savedRange) {
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+    }
+}

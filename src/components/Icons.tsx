@@ -192,18 +192,28 @@ export const BackgroundColorIcon: React.FC<IconProps> = ({
         width={width}
         height={height}
         viewBox="0 0 24 24"
-        fill="currentColor"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         className={className}
     >
-        <path d="M17.5 4.5c-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5-1.45 0-2.99.22-4.28.79C1.49 5.62 1 6.33 1 7.14v11.28c0 1.3 1.22 2.26 2.48 1.94.98-.25 2.02-.36 3.02-.36 1.56 0 3.22.26 4.56.92.6.3 1.28.3 1.88 0 1.34-.67 3-.92 4.56-.92 1 0 2.04.11 3.02.36C22.78 20.68 24 19.72 24 18.42V7.14c0-.81-.49-1.52-1.22-1.85-1.29-.57-2.83-.79-4.28-.79zM21 17.23c0 .63-.58 1.09-1.2.98-.75-.14-1.53-.2-2.3-.2-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5.77 0 1.55.06 2.3.2.62.11 1.2.58 1.2 1.18v9.35z" />
+        {/* Pinsel */}
+        <path d="M14.5 2.5L21.5 9.5L13 18L6 11L14.5 2.5Z" />
+        <path d="M6 11L13 18" />
+        {/* Hintergrund-Farbbereich */}
         <rect
-            x="4"
-            y="13"
-            width="16"
+            x="2"
+            y="16"
+            width="8"
             height="6"
             fill="currentColor"
-            opacity="0.5"
+            opacity="0.6"
+            rx="1"
         />
+        {/* Pinselspitze */}
+        <path d="M21.5 9.5L19 7" />
     </svg>
 );
 
@@ -220,6 +230,23 @@ export const HeadingIcon: React.FC<IconProps> = ({
         className={className}
     >
         <path d="M5 4v3h5.5v12h3V7H19V4H5z" />
+    </svg>
+);
+
+export const FormatIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        {/* Paragraph symbol */}
+        <path d="M3 4h18v2H3V4zm0 4h12v2H3V8zm0 4h18v2H3v-2zm0 4h12v2H3v-2z" />
     </svg>
 );
 
@@ -335,6 +362,22 @@ export const OutdentIcon: React.FC<IconProps> = ({
     </svg>
 );
 
+export const CheckboxIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M19 3H5c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+    </svg>
+);
+
 const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-bold": BoldIcon,
     "mdi:format-italic": ItalicIcon,
@@ -349,6 +392,7 @@ const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-color-text": TextColorIcon,
     "mdi:format-color-fill": BackgroundColorIcon,
     "mdi:format-header-1": HeadingIcon,
+    "mdi:format-paragraph": FormatIcon,
     "mdi:format-size": FontSizeIcon,
     "mdi:image": ImageIcon,
     "mdi:close": CloseIcon,
@@ -356,6 +400,7 @@ const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:upload": UploadIcon,
     "mdi:format-indent-increase": IndentIcon,
     "mdi:format-indent-decrease": OutdentIcon,
+    "mdi:checkbox-marked-outline": CheckboxIcon,
 };
 
 export const Icon: React.FC<{

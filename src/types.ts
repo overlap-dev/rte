@@ -13,7 +13,7 @@ export interface Plugin {
   name: string;
   type: 'inline' | 'block' | 'command';
   command?: string;
-  renderButton?: (props: ButtonProps & { [key: string]: any }) => React.ReactElement;
+  renderButton?: (props: ButtonProps & { [key: string]: unknown }) => React.ReactElement;
   execute?: (editor: EditorAPI, value?: string) => void;
   isActive?: (editor: EditorAPI) => boolean;
   canExecute?: (editor: EditorAPI) => boolean;
@@ -68,7 +68,7 @@ export interface EditorProps {
   toolbarClassName?: string;
   editorClassName?: string;
   // Link System
-  customLinkComponent?: React.ComponentType<{ href: string; children: React.ReactNode; [key: string]: any }>;
+  customLinkComponent?: React.ComponentType<{ href: string; children: React.ReactNode; [key: string]: unknown }>;
   // Font Size System
   fontSizes?: number[];
   // Color System

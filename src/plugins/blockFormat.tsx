@@ -1,7 +1,8 @@
 import { Dropdown } from "../components/Dropdown";
-import { ButtonProps, EditorAPI, Plugin } from "../types";
+import { EditorAPI, Plugin } from "../types";
+import { findClosestCheckboxList } from "../utils/dom";
 
-const defaultHeadings = ["h1", "h2", "h3"];
+const defaultHeadings = ["h1", "h2", "h3", "h4", "h5", "h6"];
 
 const headingLabels: Record<string, string> = {
     h1: "Überschrift 1",
@@ -13,8 +14,8 @@ const headingLabels: Record<string, string> = {
 };
 
 /**
- * Erstellt ein Block-Format-Plugin, das Headlines, Listen und Quote in einem Dropdown kombiniert
- * @param headings - Array von Heading-Levels (z.B. ["h1", "h2", "h3"])
+ * Creates a Block Format plugin that combines headings, lists, and quote in a dropdown.
+ * @param headings - Array of heading levels (e.g. ["h1", "h2", "h3"])
  */
 export function createBlockFormatPlugin(
     headings: string[] = defaultHeadings
@@ -36,24 +37,76 @@ export function createBlockFormatPlugin(
             label: "Nummerierte Liste",
             icon: "mdi:format-list-numbered",
         },
-        { value: "blockquote", label: "Zitat", icon: "mdi:format-quote-close" },
+        {
+            value: "checkbox-list",
+            label: "Checkbox-Liste",
+            icon: "mdi:checkbox-marked-outline",
+        },
+        {
+            value: "blockquote",
+            label: "Zitat",
+            icon: "mdi:format-quote-close",
+        },
     ];
+
+    /** Detects the current block format at the cursor position. */
+    function detectCurrentFormat(editor: EditorAPI): string | undefined {
+        const selection = editor.getSelection();
+        if (!selection || selection.rangeCount === 0) return undefined;
+
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const element =
+            container.nodeType === Node.TEXT_NODE
+                ? container.parentElement
+                : (container as HTMLElement);
+
+        if (!element) return undefined;
+
+        const tagName = element.tagName.toLowerCase();
+
+        if (headings.includes(tagName)) return tagName;
+        if (element.closest("blockquote")) return "blockquote";
+        if (findClosestCheckboxList(element)) return "checkbox-list";
+        if (element.closest("ul")) return "ul";
+        if (element.closest("ol")) return "ol";
+        if (tagName === "p") return "p";
+
+        return undefined;
+    }
 
     return {
         name: "blockFormat",
         type: "block",
-        renderButton: (
-            props: ButtonProps & {
-                onSelect?: (value: string) => void;
-                editorAPI?: EditorAPI;
-                currentValue?: string;
-            }
-        ) => {
-            // Aktuelles Format bestimmen
-            const editor = props.editorAPI;
-            let currentValue = props.currentValue;
+        renderButton: (props) => {
+            const editor = props.editorAPI as EditorAPI | undefined;
+            const onSelect = props.onSelect as
+                | ((value: string) => void)
+                | undefined;
+            let currentValue = props.currentValue as string | undefined;
 
             if (!currentValue && editor) {
+                currentValue = detectCurrentFormat(editor);
+            }
+
+            return (
+                <Dropdown
+                    icon="mdi:format-paragraph"
+                    label="Format"
+                    options={options}
+                    onSelect={(value) => {
+                        if (onSelect) onSelect(value);
+                    }}
+                    currentValue={currentValue}
+                    disabled={props.disabled}
+                />
+            );
+        },
+        getCurrentValue: (editor: EditorAPI) => detectCurrentFormat(editor),
+        execute: (editor: EditorAPI, value?: string) => {
+            if (!value) return;
+
+            if (value === "checkbox-list") {
                 const selection = editor.getSelection();
                 if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
@@ -63,88 +116,24 @@ export function createBlockFormatPlugin(
                             ? container.parentElement
                             : (container as HTMLElement);
 
-                    if (element) {
-                        const tagName = element.tagName.toLowerCase();
+                    if (!element) return;
 
-                        // Prüfe auf Heading
-                        if (headings.includes(tagName)) {
-                            currentValue = tagName;
-                        }
-                        // Prüfe auf Blockquote
-                        else if (element.closest("blockquote")) {
-                            currentValue = "blockquote";
-                        }
-                        // Prüfe auf Liste
-                        else if (element.closest("ul")) {
-                            currentValue = "ul";
-                        } else if (element.closest("ol")) {
-                            currentValue = "ol";
-                        }
-                        // Prüfe auf Paragraph
-                        else if (tagName === "p") {
-                            currentValue = "p";
-                        }
+                    const checkboxList = findClosestCheckboxList(element);
+                    if (checkboxList) {
+                        // Remove checkbox list: convert to normal list
+                        checkboxList.classList.remove("rte-checkbox-list");
+                        checkboxList
+                            .querySelectorAll("li[role='checkbox']")
+                            .forEach((li) => {
+                                li.removeAttribute("role");
+                                li.removeAttribute("tabIndex");
+                                li.removeAttribute("aria-checked");
+                            });
+                    } else {
+                        editor.executeCommand("insertCheckboxList");
                     }
                 }
-            }
-
-            return (
-                <Dropdown
-                    icon="mdi:format-header-1"
-                    label="Format"
-                    options={options}
-                    onSelect={(value) => {
-                        // onSelect wird von der Toolbar übergeben und ruft handlePluginClick auf
-                        if (props.onSelect) {
-                            props.onSelect(value);
-                        }
-                    }}
-                    currentValue={currentValue}
-                    disabled={props.disabled}
-                />
-            );
-        },
-        getCurrentValue: (editor: EditorAPI) => {
-            const selection = editor.getSelection();
-            if (!selection || selection.rangeCount === 0) return undefined;
-
-            const range = selection.getRangeAt(0);
-            const container = range.commonAncestorContainer;
-            const element =
-                container.nodeType === Node.TEXT_NODE
-                    ? container.parentElement
-                    : (container as HTMLElement);
-
-            if (!element) return undefined;
-
-            const tagName = element.tagName.toLowerCase();
-
-            // Prüfe auf Heading
-            if (headings.includes(tagName)) {
-                return tagName;
-            }
-            // Prüfe auf Blockquote
-            if (element.closest("blockquote")) {
-                return "blockquote";
-            }
-            // Prüfe auf Liste
-            if (element.closest("ul")) {
-                return "ul";
-            }
-            if (element.closest("ol")) {
-                return "ol";
-            }
-            // Prüfe auf Paragraph
-            if (tagName === "p") {
-                return "p";
-            }
-
-            return undefined;
-        },
-        execute: (editor: EditorAPI, value?: string) => {
-            if (!value) return;
-
-            if (value === "ul") {
+            } else if (value === "ul") {
                 editor.executeCommand("insertUnorderedList");
             } else if (value === "ol") {
                 editor.executeCommand("insertOrderedList");
@@ -185,6 +174,7 @@ export function createBlockFormatPlugin(
             return (
                 headings.includes(tagName) ||
                 element.closest("blockquote") !== null ||
+                findClosestCheckboxList(element) !== null ||
                 element.closest("ul") !== null ||
                 element.closest("ol") !== null
             );
