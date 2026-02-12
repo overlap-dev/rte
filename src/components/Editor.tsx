@@ -425,8 +425,83 @@ export const Editor: React.FC<EditorProps> = ({
         if (onEditorAPIReady) onEditorAPIReady(editorAPI);
     }, [editorAPI, onEditorAPIReady]);
 
+    // --- Helper: insert an image file via the onImageUpload callback ---
+    const insertImageFile = useCallback(
+        async (file: File) => {
+            if (!onImageUpload || !file.type.startsWith("image/")) return;
+            const editor = editorRef.current;
+            if (!editor) return;
+
+            try {
+                // Show a placeholder while uploading
+                const placeholder = document.createElement("img");
+                placeholder.setAttribute("data-uploading", "true");
+                placeholder.style.maxWidth = "100%";
+                placeholder.style.height = "auto";
+                placeholder.style.display = "block";
+                placeholder.style.margin = "16px 0";
+                placeholder.style.opacity = "0.5";
+                // Use a tiny transparent gif as placeholder src
+                placeholder.src =
+                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                placeholder.alt = file.name;
+
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(placeholder);
+                    range.setStartAfter(placeholder);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                } else {
+                    editor.appendChild(placeholder);
+                }
+
+                // Upload
+                const url = await onImageUpload(file);
+
+                // Replace placeholder with final image
+                placeholder.src = url;
+                placeholder.removeAttribute("data-uploading");
+                placeholder.style.opacity = "1";
+
+                // Preserve data-attachment-id if returned in a special format
+                // The onImageUpload callback can return "url|attachmentId"
+                if (url.includes("|__aid__:")) {
+                    const [realUrl, aid] = url.split("|__aid__:");
+                    placeholder.src = realUrl;
+                    placeholder.setAttribute("data-attachment-id", aid);
+                }
+
+                notifyChange(domToContent(editor));
+            } catch (err) {
+                console.error("Image upload failed:", err);
+                // Remove failed placeholder
+                const failedImg = editor.querySelector(
+                    'img[data-uploading="true"]'
+                );
+                failedImg?.remove();
+            }
+        },
+        [onImageUpload, notifyChange]
+    );
+
     // --- Paste handler ---
     const handlePaste = (e: React.ClipboardEvent) => {
+        // Check for pasted image files first
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.type.startsWith("image/")) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (file) insertImageFile(file);
+                return;
+            }
+        }
+
         e.preventDefault();
         const html = e.clipboardData.getData("text/html");
         const text = e.clipboardData.getData("text/plain");
@@ -518,6 +593,23 @@ export const Editor: React.FC<EditorProps> = ({
                 className={`rte-editor ${editorClassName || ""}`}
                 data-placeholder={placeholder}
                 onPaste={handlePaste}
+                onDrop={(e: React.DragEvent) => {
+                    const files = e.dataTransfer.files;
+                    for (let i = 0; i < files.length; i++) {
+                        if (files[i].type.startsWith("image/")) {
+                            e.preventDefault();
+                            insertImageFile(files[i]);
+                            return;
+                        }
+                    }
+                }}
+                onDragOver={(e: React.DragEvent) => {
+                    // Allow drop
+                    const types = e.dataTransfer.types;
+                    if (types && Array.from(types).includes("Files")) {
+                        e.preventDefault();
+                    }
+                }}
                 suppressContentEditableWarning
             />
         </div>
