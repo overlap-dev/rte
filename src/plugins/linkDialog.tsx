@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { IconWrapper } from "../components/IconWrapper";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
 
@@ -9,69 +10,146 @@ import { ButtonProps, EditorAPI, Plugin } from "../types";
 interface LinkData {
     url: string;
     target: string;
-    rel: string;
-    title: string;
-    pageRef: string;
-    urlExtra: string;
+    /** Values for custom fields, keyed by field.key */
+    custom: Record<string, string>;
 }
 
-interface AdvancedLinkOptions {
-    enablePageRef?: boolean;
+/**
+ * Describes an additional field injected into the link dialog.
+ * This allows platform-specific extensions (e.g. page reference, URL extras)
+ * without baking them into the core RTE.
+ */
+export interface LinkCustomField {
+    /** Unique identifier (used as key in LinkData.custom) */
+    key: string;
+    /** Display label */
+    label: string;
+    /** Input placeholder */
+    placeholder?: string;
+    /** The HTML attribute to read/write on the <a> element (e.g. "data-page-ref") */
+    dataAttribute: string;
+    /** If true, this field's value is appended to the href when saving. */
+    appendToHref?: boolean;
+    /** If true, the URL input is disabled when this field has a value. */
+    disablesUrl?: boolean;
+}
+
+export interface AdvancedLinkOptions {
+    /** Show "Open in new tab" checkbox. Defaults to true. */
     enableTarget?: boolean;
-    enableRel?: boolean;
-    enableTitle?: boolean;
-    enableUrlExtra?: boolean;
+    /** Additional custom fields rendered in the advanced section. */
+    customFields?: LinkCustomField[];
 }
 
-const EMPTY_LINK: LinkData = {
-    url: "",
-    target: "_self",
-    rel: "",
-    title: "",
-    pageRef: "",
-    urlExtra: "",
-};
+function createEmptyLinkData(fields: LinkCustomField[]): LinkData {
+    const custom: Record<string, string> = {};
+    for (const f of fields) custom[f.key] = "";
+    return { url: "https://", target: "_self", custom };
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
-   Link Dialog component
+   Position helper — prefers above the link, falls back to below
    ══════════════════════════════════════════════════════════════════════ */
 
-interface LinkDialogProps {
-    initialData: LinkData;
-    options: AdvancedLinkOptions;
+const VERTICAL_GAP = 10;
+const HORIZONTAL_OFFSET = 5;
+
+function computePosition(anchorRect: DOMRect) {
+    const dialogWidth = 380;
+    const estimatedHeight = 260;
+
+    const topAbove = anchorRect.top - VERTICAL_GAP - estimatedHeight;
+    const topBelow = anchorRect.bottom + VERTICAL_GAP;
+
+    const aboveOverflowsTop = topAbove < 8;
+    const belowOverflowsBottom =
+        topBelow + estimatedHeight > window.innerHeight - 8;
+
+    let top: number;
+    if (!aboveOverflowsTop) {
+        top = topAbove;
+    } else if (!belowOverflowsBottom) {
+        top = topBelow;
+    } else {
+        top = Math.max(8, topAbove);
+    }
+
+    let left = anchorRect.left - HORIZONTAL_OFFSET;
+    if (left + dialogWidth > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - dialogWidth - 8);
+    }
+
+    return { top, left };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Floating Link Editor — rendered via portal on document.body
+   ══════════════════════════════════════════════════════════════════════ */
+
+interface FloatingLinkEditorProps {
+    linkData: LinkData;
+    options: Required<Pick<AdvancedLinkOptions, "enableTarget">> &
+        Pick<AdvancedLinkOptions, "customFields">;
+    anchorRect: DOMRect;
+    isEditing: boolean;
     onSave: (data: LinkData) => void;
     onRemove: () => void;
     onClose: () => void;
-    isEditing: boolean;
 }
 
-const LinkDialog: React.FC<LinkDialogProps> = ({
-    initialData,
+const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
+    linkData: initialData,
     options,
+    anchorRect,
+    isEditing,
     onSave,
     onRemove,
     onClose,
-    isEditing,
 }) => {
     const [data, setData] = useState<LinkData>(initialData);
-    const [showAdvanced, setShowAdvanced] = useState(false);
+    const customFields = options.customFields ?? [];
+
+    const [showAdvanced, setShowAdvanced] = useState(() => {
+        // Auto-expand if target is _blank or any custom field has a value
+        if (initialData.target === "_blank") return true;
+        for (const f of customFields) {
+            if (initialData.custom[f.key]) return true;
+        }
+        return false;
+    });
+
     const dialogRef = useRef<HTMLDivElement>(null);
     const urlInputRef = useRef<HTMLInputElement>(null);
 
+    // Focus URL input on open
     useEffect(() => {
-        urlInputRef.current?.focus();
+        const timer = setTimeout(() => {
+            const input = urlInputRef.current;
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 30);
+        return () => clearTimeout(timer);
     }, []);
 
+    // Click-away
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (
                 dialogRef.current &&
                 !dialogRef.current.contains(e.target as Node)
             ) {
+                const target = e.target as HTMLElement;
+                if (
+                    target.closest?.("a") &&
+                    target.closest?.("[contenteditable]")
+                ) {
+                    return;
+                }
                 onClose();
             }
         };
-        // Delay to avoid closing immediately on the same click
         const timer = setTimeout(() => {
             document.addEventListener("mousedown", handler);
         }, 50);
@@ -79,6 +157,18 @@ const LinkDialog: React.FC<LinkDialogProps> = ({
             clearTimeout(timer);
             document.removeEventListener("mousedown", handler);
         };
+    }, [onClose]);
+
+    // Escape to close
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                onClose();
+            }
+        };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
     }, [onClose]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -91,24 +181,43 @@ const LinkDialog: React.FC<LinkDialogProps> = ({
         }
     };
 
-    const set = (key: keyof LinkData, value: string) =>
+    const setField = (key: keyof Omit<LinkData, "custom">, value: string) =>
         setData((prev) => ({ ...prev, [key]: value }));
 
-    const hasAdvancedOptions =
-        options.enableRel ||
-        options.enableTitle ||
-        options.enableUrlExtra ||
-        options.enablePageRef;
+    const setCustom = (key: string, value: string) =>
+        setData((prev) => ({
+            ...prev,
+            custom: { ...prev.custom, [key]: value },
+        }));
 
-    return (
+    // Check if URL input should be disabled (a custom field with disablesUrl has a value)
+    const urlDisabledByCustom = customFields.some(
+        (f) => f.disablesUrl && !!data.custom[f.key]
+    );
+
+    const hasAdvancedSection =
+        options.enableTarget || customFields.length > 0;
+
+    const pos = computePosition(anchorRect);
+
+    return createPortal(
         <div
             ref={dialogRef}
-            className="rte-link-dialog"
+            className="rte-link-dialog rte-link-dialog-floating"
+            style={{ top: pos.top, left: pos.left, position: "fixed" }}
             onKeyDown={handleKeyDown}
+            onMouseDown={(e) => e.stopPropagation()}
         >
-            <div className="rte-link-dialog-title">
-                {isEditing ? "Link bearbeiten" : "Link einfügen"}
-            </div>
+            {/* Close button */}
+            <button
+                type="button"
+                className="rte-link-dialog-close"
+                onClick={onClose}
+                onMouseDown={(e) => e.preventDefault()}
+                aria-label="Schließen"
+            >
+                <IconWrapper icon="mdi:close" width={16} height={16} />
+            </button>
 
             <div className="rte-link-dialog-field">
                 <label className="rte-link-dialog-label">URL</label>
@@ -117,185 +226,285 @@ const LinkDialog: React.FC<LinkDialogProps> = ({
                     type="url"
                     className="rte-link-dialog-input"
                     value={data.url}
-                    onChange={(e) => set("url", e.target.value)}
+                    onChange={(e) => setField("url", e.target.value)}
                     placeholder="https://..."
+                    disabled={urlDisabledByCustom}
                 />
             </div>
 
-            {options.enableTarget && (
-                <div className="rte-link-dialog-field">
-                    <label className="rte-link-dialog-label">Ziel</label>
-                    <select
-                        className="rte-link-dialog-select"
-                        value={data.target}
-                        onChange={(e) => set("target", e.target.value)}
-                    >
-                        <option value="_self">Gleiches Fenster</option>
-                        <option value="_blank">Neues Fenster</option>
-                    </select>
-                </div>
-            )}
-
-            {hasAdvancedOptions && (
-                <>
+            {hasAdvancedSection && (
+                <div className="rte-link-dialog-advanced-section">
                     <button
                         type="button"
                         className="rte-link-dialog-toggle"
                         onClick={() => setShowAdvanced(!showAdvanced)}
+                        onMouseDown={(e) => e.preventDefault()}
                     >
-                        {showAdvanced ? "Erweitert ausblenden" : "Erweitert anzeigen"}
+                        <span>
+                            {showAdvanced ? "▾" : "▸"} Erweitert
+                        </span>
                     </button>
 
                     {showAdvanced && (
                         <div className="rte-link-dialog-advanced">
-                            {options.enablePageRef && (
-                                <div className="rte-link-dialog-field">
+                            {/* Custom fields */}
+                            {customFields.map((field) => (
+                                <div
+                                    key={field.key}
+                                    className="rte-link-dialog-field"
+                                >
                                     <label className="rte-link-dialog-label">
-                                        Seitenreferenz
+                                        {field.label}
                                     </label>
                                     <input
                                         type="text"
                                         className="rte-link-dialog-input"
-                                        value={data.pageRef}
+                                        value={data.custom[field.key] || ""}
                                         onChange={(e) =>
-                                            set("pageRef", e.target.value)
+                                            setCustom(
+                                                field.key,
+                                                e.target.value
+                                            )
                                         }
-                                        placeholder="page-id"
+                                        placeholder={field.placeholder}
                                     />
                                 </div>
-                            )}
-                            {options.enableUrlExtra && (
-                                <div className="rte-link-dialog-field">
-                                    <label className="rte-link-dialog-label">
-                                        URL Extra
-                                    </label>
+                            ))}
+
+                            {/* Target checkbox */}
+                            {options.enableTarget && (
+                                <label className="rte-link-dialog-checkbox-row">
                                     <input
-                                        type="text"
-                                        className="rte-link-dialog-input"
-                                        value={data.urlExtra}
+                                        type="checkbox"
+                                        checked={data.target === "_blank"}
                                         onChange={(e) =>
-                                            set("urlExtra", e.target.value)
+                                            setField(
+                                                "target",
+                                                e.target.checked
+                                                    ? "_blank"
+                                                    : "_self"
+                                            )
                                         }
-                                        placeholder="?param=value oder #anchor"
                                     />
-                                </div>
-                            )}
-                            {options.enableRel && (
-                                <div className="rte-link-dialog-field">
-                                    <label className="rte-link-dialog-label">
-                                        Rel
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="rte-link-dialog-input"
-                                        value={data.rel}
-                                        onChange={(e) =>
-                                            set("rel", e.target.value)
-                                        }
-                                        placeholder="noopener noreferrer"
-                                    />
-                                </div>
-                            )}
-                            {options.enableTitle && (
-                                <div className="rte-link-dialog-field">
-                                    <label className="rte-link-dialog-label">
-                                        Titel
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="rte-link-dialog-input"
-                                        value={data.title}
-                                        onChange={(e) =>
-                                            set("title", e.target.value)
-                                        }
-                                        placeholder="Link-Titel"
-                                    />
-                                </div>
+                                    <span>In neuem Tab öffnen</span>
+                                </label>
                             )}
                         </div>
                     )}
-                </>
+                </div>
             )}
 
             <div className="rte-link-dialog-actions">
-                <button
-                    type="button"
-                    className="rte-link-dialog-btn rte-link-dialog-btn-primary"
-                    onClick={() => onSave(data)}
-                    disabled={!data.url.trim()}
-                >
-                    {isEditing ? "Speichern" : "Einfügen"}
-                </button>
                 {isEditing && (
                     <button
                         type="button"
                         className="rte-link-dialog-btn rte-link-dialog-btn-danger"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={onRemove}
                     >
                         Entfernen
                     </button>
                 )}
+                <div style={{ flex: 1 }} />
                 <button
                     type="button"
                     className="rte-link-dialog-btn"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={onClose}
                 >
                     Abbrechen
                 </button>
+                <button
+                    type="button"
+                    className="rte-link-dialog-btn rte-link-dialog-btn-primary"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onSave(data)}
+                    disabled={
+                        !data.url.trim() || data.url.trim() === "https://"
+                    }
+                >
+                    Speichern
+                </button>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
 /* ══════════════════════════════════════════════════════════════════════════
-   Link Toolbar Button (stateful — opens dialog)
+   Helpers
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Find the <a> element at the current selection. */
+function getSelectedLink(): HTMLAnchorElement | null {
+    const sel = document.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const el =
+        container.nodeType === Node.TEXT_NODE
+            ? container.parentElement
+            : (container as HTMLElement);
+    return el?.closest("a") as HTMLAnchorElement | null;
+}
+
+/** Read link data from an <a> element. */
+function readLinkData(
+    link: HTMLAnchorElement,
+    customFields: LinkCustomField[]
+): LinkData {
+    const href = link.getAttribute("href") || "https://";
+    const custom: Record<string, string> = {};
+
+    // Read custom field values from data-attributes
+    for (const field of customFields) {
+        custom[field.key] = link.getAttribute(field.dataAttribute) || "";
+    }
+
+    // If a field with appendToHref has a value, strip it from the URL
+    let url = href;
+    for (const field of customFields) {
+        if (field.appendToHref && custom[field.key] && href.endsWith(custom[field.key])) {
+            url = href.slice(0, href.length - custom[field.key].length);
+        }
+    }
+
+    return {
+        url,
+        target: link.getAttribute("target") || "_self",
+        custom,
+    };
+}
+
+/** Apply link data attributes to an <a> element. */
+function applyLinkData(
+    link: HTMLAnchorElement,
+    data: LinkData,
+    customFields: LinkCustomField[]
+): void {
+    // Build href: url + any appendToHref custom fields
+    let href = data.url;
+    for (const field of customFields) {
+        if (field.appendToHref && data.custom[field.key]) {
+            href += data.custom[field.key];
+        }
+    }
+    link.setAttribute("href", href);
+
+    // Target
+    if (data.target && data.target !== "_self") {
+        link.setAttribute("target", data.target);
+    } else {
+        link.removeAttribute("target");
+    }
+
+    // Custom field data-attributes
+    for (const field of customFields) {
+        const value = data.custom[field.key];
+        if (value) {
+            link.setAttribute(field.dataAttribute, value);
+        } else {
+            link.removeAttribute(field.dataAttribute);
+        }
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Link Toolbar Button + Floating Editor orchestrator
    ══════════════════════════════════════════════════════════════════════ */
 
 interface LinkButtonProps extends ButtonProps {
     editorAPI?: EditorAPI;
-    options: AdvancedLinkOptions;
+    enableTarget: boolean;
+    customFields: LinkCustomField[];
 }
 
 const LinkToolbarButton: React.FC<LinkButtonProps> = (props) => {
+    const { enableTarget, customFields } = props;
+
     const [showDialog, setShowDialog] = useState(false);
-    const [linkData, setLinkData] = useState<LinkData>(EMPTY_LINK);
+    const [linkData, setLinkData] = useState<LinkData>(() =>
+        createEmptyLinkData(customFields)
+    );
     const [isEditing, setIsEditing] = useState(false);
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const savedRangeRef = useRef<Range | null>(null);
+    const isOpenRef = useRef(false);
 
-    const openDialog = useCallback(() => {
-        const sel = document.getSelection();
-        if (!sel || sel.rangeCount === 0) return;
+    useEffect(() => {
+        isOpenRef.current = showDialog;
+    }, [showDialog]);
 
-        // Save the current selection
-        savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    // ── Open dialog ─────────────────────────────────────────────────
+    const openDialog = useCallback(
+        (existingLink?: HTMLAnchorElement | null) => {
+            const sel = document.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
 
-        const range = sel.getRangeAt(0);
-        const container = range.commonAncestorContainer;
-        const element =
-            container.nodeType === Node.TEXT_NODE
-                ? container.parentElement
-                : (container as HTMLElement);
+            savedRangeRef.current = sel.getRangeAt(0).cloneRange();
 
-        const existingLink = element?.closest("a") as HTMLAnchorElement | null;
+            const link = existingLink || getSelectedLink();
 
-        if (existingLink) {
-            setIsEditing(true);
-            setLinkData({
-                url: existingLink.getAttribute("href") || "",
-                target: existingLink.getAttribute("target") || "_self",
-                rel: existingLink.getAttribute("rel") || "",
-                title: existingLink.getAttribute("title") || "",
-                pageRef: existingLink.getAttribute("data-page-ref") || "",
-                urlExtra: existingLink.getAttribute("data-url-extra") || "",
-            });
-        } else {
-            setIsEditing(false);
-            setLinkData(EMPTY_LINK);
-        }
+            if (link) {
+                setIsEditing(true);
+                setLinkData(readLinkData(link, customFields));
+                setAnchorRect(link.getBoundingClientRect());
+            } else {
+                setIsEditing(false);
+                setLinkData(createEmptyLinkData(customFields));
+                const range = sel.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0) {
+                    const node = range.commonAncestorContainer;
+                    const el =
+                        node.nodeType === Node.TEXT_NODE
+                            ? node.parentElement
+                            : (node as HTMLElement);
+                    if (el) {
+                        setAnchorRect(el.getBoundingClientRect());
+                    }
+                } else {
+                    setAnchorRect(rect);
+                }
+            }
 
-        setShowDialog(true);
-    }, []);
+            setShowDialog(true);
+        },
+        [customFields]
+    );
 
+    // ── Click on links in the editor ────────────────────────────────
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const link = target.closest("a") as HTMLAnchorElement | null;
+            const editorRoot = target.closest("[contenteditable]");
+
+            if (!link || !editorRoot) return;
+
+            // Cmd/Ctrl+Click → open in new tab
+            if (e.metaKey || e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                const href = link.getAttribute("href");
+                if (href) window.open(href, "_blank");
+                return;
+            }
+
+            if (isOpenRef.current) return;
+
+            setTimeout(() => {
+                if (!isOpenRef.current) {
+                    openDialog(link);
+                }
+            }, 10);
+        };
+
+        document.addEventListener("click", handler);
+        return () => document.removeEventListener("click", handler);
+    }, [openDialog]);
+
+    // ── Restore selection ───────────────────────────────────────────
     const restoreSelection = useCallback(() => {
         if (savedRangeRef.current) {
             const sel = document.getSelection();
@@ -306,148 +515,114 @@ const LinkToolbarButton: React.FC<LinkButtonProps> = (props) => {
         }
     }, []);
 
+    // ── Save ────────────────────────────────────────────────────────
     const handleSave = useCallback(
         (data: LinkData) => {
             setShowDialog(false);
             restoreSelection();
 
-            const sel = document.getSelection();
-            if (!sel || sel.rangeCount === 0) return;
-
-            const range = sel.getRangeAt(0);
-            const container = range.commonAncestorContainer;
-            const element =
-                container.nodeType === Node.TEXT_NODE
-                    ? container.parentElement
-                    : (container as HTMLElement);
-
-            const existingLink = element?.closest(
-                "a"
-            ) as HTMLAnchorElement | null;
+            const existingLink = getSelectedLink();
 
             if (existingLink) {
-                // Update existing link
-                existingLink.setAttribute("href", data.url);
-                if (data.target && data.target !== "_self") {
-                    existingLink.setAttribute("target", data.target);
-                } else {
-                    existingLink.removeAttribute("target");
-                }
-                if (data.rel) {
-                    existingLink.setAttribute("rel", data.rel);
-                } else {
-                    existingLink.removeAttribute("rel");
-                }
-                if (data.title) {
-                    existingLink.setAttribute("title", data.title);
-                } else {
-                    existingLink.removeAttribute("title");
-                }
-                if (data.pageRef) {
-                    existingLink.setAttribute("data-page-ref", data.pageRef);
-                } else {
-                    existingLink.removeAttribute("data-page-ref");
-                }
-                if (data.urlExtra) {
-                    existingLink.setAttribute("data-url-extra", data.urlExtra);
-                } else {
-                    existingLink.removeAttribute("data-url-extra");
-                }
+                applyLinkData(existingLink, data, customFields);
             } else {
-                // Create new link
-                document.execCommand("createLink", false, data.url);
-                // Now find the newly created link and set extra attributes
-                const newSel = document.getSelection();
-                if (newSel && newSel.rangeCount > 0) {
-                    const newRange = newSel.getRangeAt(0);
-                    const newContainer = newRange.commonAncestorContainer;
-                    const newElement =
-                        newContainer.nodeType === Node.TEXT_NODE
-                            ? newContainer.parentElement
-                            : (newContainer as HTMLElement);
-                    const newLink = newElement?.closest(
-                        "a"
-                    ) as HTMLAnchorElement | null;
-                    if (newLink) {
-                        if (data.target && data.target !== "_self") {
-                            newLink.setAttribute("target", data.target);
-                        }
-                        if (data.rel) {
-                            newLink.setAttribute("rel", data.rel);
-                        }
-                        if (data.title) {
-                            newLink.setAttribute("title", data.title);
-                        }
-                        if (data.pageRef) {
-                            newLink.setAttribute(
-                                "data-page-ref",
-                                data.pageRef
-                            );
-                        }
-                        if (data.urlExtra) {
-                            newLink.setAttribute(
-                                "data-url-extra",
-                                data.urlExtra
-                            );
-                        }
+                let href = data.url;
+                for (const field of customFields) {
+                    if (field.appendToHref && data.custom[field.key]) {
+                        href += data.custom[field.key];
                     }
                 }
+                document.execCommand("createLink", false, href);
+                const newLink = getSelectedLink();
+                if (newLink) {
+                    applyLinkData(newLink, data, customFields);
+                }
             }
+
+            // Move cursor after the link
+            setTimeout(() => {
+                const sel = document.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    const link = getSelectedLink();
+                    if (link) {
+                        const range = document.createRange();
+                        range.setStartAfter(link);
+                        range.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }
+            }, 0);
         },
-        [restoreSelection]
+        [restoreSelection, customFields]
     );
 
+    // ── Remove link ─────────────────────────────────────────────────
     const handleRemove = useCallback(() => {
         setShowDialog(false);
         restoreSelection();
 
-        const sel = document.getSelection();
-        if (!sel || sel.rangeCount === 0) return;
-
-        const range = sel.getRangeAt(0);
-        const container = range.commonAncestorContainer;
-        const element =
-            container.nodeType === Node.TEXT_NODE
-                ? container.parentElement
-                : (container as HTMLElement);
-
-        const existingLink = element?.closest("a") as HTMLAnchorElement | null;
-        if (existingLink) {
-            const parent = existingLink.parentNode;
+        const link = getSelectedLink();
+        if (link) {
+            const parent = link.parentNode;
             if (parent) {
-                while (existingLink.firstChild) {
-                    parent.insertBefore(existingLink.firstChild, existingLink);
+                while (link.firstChild) {
+                    parent.insertBefore(link.firstChild, link);
                 }
-                parent.removeChild(existingLink);
+                parent.removeChild(link);
             }
         }
     }, [restoreSelection]);
 
+    // ── Close ───────────────────────────────────────────────────────
+    const handleClose = useCallback(() => {
+        setShowDialog(false);
+        restoreSelection();
+
+        setTimeout(() => {
+            const sel = document.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const link = getSelectedLink();
+                if (link) {
+                    const lastChild = link.lastChild;
+                    if (lastChild) {
+                        const range = document.createRange();
+                        range.setStartAfter(lastChild);
+                        range.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }
+            }
+        }, 0);
+    }, [restoreSelection]);
+
     return (
-        <div style={{ position: "relative" }}>
+        <>
             <button
                 type="button"
-                onClick={openDialog}
+                onClick={() => openDialog()}
                 disabled={props.disabled}
                 className={`rte-toolbar-button ${
                     props.isActive ? "rte-toolbar-button-active" : ""
                 }`}
-                title="Link"
+                title="Link (⌘K)"
                 aria-label="Link"
             >
                 <IconWrapper icon="mdi:link" width={18} height={18} />
             </button>
-            {showDialog && (
-                <LinkDialog
-                    initialData={linkData}
-                    options={props.options}
+            {showDialog && anchorRect && (
+                <FloatingLinkEditor
+                    linkData={linkData}
+                    options={{ enableTarget, customFields }}
+                    anchorRect={anchorRect}
+                    isEditing={isEditing}
                     onSave={handleSave}
                     onRemove={handleRemove}
-                    onClose={() => setShowDialog(false)}
-                    isEditing={isEditing}
+                    onClose={handleClose}
                 />
             )}
-        </div>
+        </>
     );
 };
 
@@ -457,19 +632,24 @@ const LinkToolbarButton: React.FC<LinkButtonProps> = (props) => {
 
 /**
  * Creates an advanced link plugin with a floating dialog.
- * Supports URL, target, rel, title, page reference, and URL extra.
+ *
+ * Core features (always available):
+ * - URL input
+ * - "Open in new tab" checkbox (enableTarget)
+ * - Cmd/Ctrl+Click → open link in new tab
+ * - Click on link → edit it inline
+ *
+ * Platform-specific fields (injected via `customFields`):
+ * - Each field is rendered in the "Advanced" section
+ * - Values are stored as data-attributes on the <a> element
+ * - `appendToHref` fields have their value appended to the href
+ * - `disablesUrl` fields disable the URL input when they have a value
  */
 export function createAdvancedLinkPlugin(
     options: AdvancedLinkOptions = {}
 ): Plugin {
-    const opts: AdvancedLinkOptions = {
-        enablePageRef: false,
-        enableTarget: true,
-        enableRel: true,
-        enableTitle: true,
-        enableUrlExtra: false,
-        ...options,
-    };
+    const enableTarget = options.enableTarget ?? true;
+    const customFields = options.customFields ?? [];
 
     return {
         name: "advancedLink",
@@ -478,7 +658,8 @@ export function createAdvancedLinkPlugin(
             <LinkToolbarButton
                 {...props}
                 editorAPI={props.editorAPI as EditorAPI | undefined}
-                options={opts}
+                enableTarget={enableTarget}
+                customFields={customFields}
             />
         ),
         execute: () => {
@@ -486,15 +667,7 @@ export function createAdvancedLinkPlugin(
         },
         isActive: () => {
             if (typeof document === "undefined") return false;
-            const sel = document.getSelection();
-            if (!sel || sel.rangeCount === 0) return false;
-            const range = sel.getRangeAt(0);
-            const container = range.commonAncestorContainer;
-            const element =
-                container.nodeType === Node.TEXT_NODE
-                    ? container.parentElement
-                    : (container as HTMLElement);
-            return element?.closest("a") !== null;
+            return getSelectedLink() !== null;
         },
         canExecute: () => {
             const sel = document.getSelection();
@@ -503,5 +676,5 @@ export function createAdvancedLinkPlugin(
     };
 }
 
-/** Pre-built advanced link plugin with target + rel + title enabled */
+/** Pre-built link plugin with just target enabled (no custom fields). */
 export const advancedLinkPlugin: Plugin = createAdvancedLinkPlugin();

@@ -45,6 +45,7 @@
     background: var(--rte-content-bg);
     font-family: var(--rte-font-family);
     box-shadow: var(--rte-shadow-sm);
+    position: relative;
 }
 
 /* Toolbar */
@@ -873,27 +874,46 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Link Dialog Styles
+   Link Dialog Styles — Floating near link in content
    ═══════════════════════════════════════════════════════════════════ */
 
 .rte-link-dialog {
-    position: absolute;
-    top: 100%;
-    left: 0;
     z-index: 1000;
-    background: white;
+    background: var(--rte-content-bg, white);
     border: 1px solid var(--rte-border-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+    padding: 16px 16px 14px;
     min-width: 320px;
-    max-width: 400px;
+    max-width: 380px;
+    box-sizing: border-box;
 }
 
-.rte-link-dialog-title {
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 12px;
+/* Floating variant: positioned via portal on document.body with position:fixed (inline) */
+.rte-link-dialog-floating {
+    position: fixed;
+}
+
+/* Close button (top-right) */
+.rte-link-dialog-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--rte-text-secondary);
+    transition: all 0.15s ease;
+}
+
+.rte-link-dialog-close:hover {
+    background: var(--rte-button-hover-bg);
     color: var(--rte-text-color);
 }
 
@@ -918,8 +938,9 @@
     font-size: 13px;
     font-family: var(--rte-font-family);
     outline: none;
-    background: white;
+    background: var(--rte-content-bg, white);
     color: var(--rte-text-color);
+    box-sizing: border-box;
 }
 
 .rte-link-dialog-input:focus,
@@ -928,31 +949,64 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
+.rte-link-dialog-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Advanced section */
+.rte-link-dialog-advanced-section {
+    margin-top: 2px;
+}
+
 .rte-link-dialog-toggle {
-    background: none;
+    background: var(--rte-toolbar-bg, #f5f5f5);
     border: none;
-    padding: 4px 0;
+    padding: 6px 10px;
     font-size: 12px;
-    color: var(--rte-primary-color);
+    font-weight: 500;
+    color: var(--rte-text-color);
     cursor: pointer;
     font-family: var(--rte-font-family);
-    margin-bottom: 8px;
+    border-radius: 5px;
+    width: 100%;
+    text-align: left;
+    transition: background 0.15s;
 }
 
 .rte-link-dialog-toggle:hover {
-    text-decoration: underline;
+    background: var(--rte-button-hover-bg);
 }
 
 .rte-link-dialog-advanced {
-    border-top: 1px solid var(--rte-border-color);
     padding-top: 10px;
     margin-top: 4px;
+}
+
+/* Checkbox row (e.g. "In neuem Tab öffnen") */
+.rte-link-dialog-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    color: var(--rte-text-color);
+    padding: 4px 0;
+}
+
+.rte-link-dialog-checkbox-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--rte-primary-color);
 }
 
 .rte-link-dialog-actions {
     display: flex;
     gap: 8px;
     margin-top: 14px;
+    align-items: center;
 }
 
 .rte-link-dialog-btn {
@@ -963,7 +1017,7 @@
     font-weight: 500;
     cursor: pointer;
     font-family: var(--rte-font-family);
-    background: white;
+    background: var(--rte-content-bg, white);
     color: var(--rte-text-color);
     transition: all 0.15s;
 }
@@ -994,6 +1048,27 @@
 
 .rte-link-dialog-btn-danger:hover {
     background: #fef2f2;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Inline code, sub, sup styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Image Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-image {
+    max-width: 370px;
+    height: auto;
+    display: block;
+    margin: 8px auto;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.rte-image-uploading {
+    opacity: 0.5;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

@@ -436,11 +436,7 @@ export const Editor: React.FC<EditorProps> = ({
                 // Show a placeholder while uploading
                 const placeholder = document.createElement("img");
                 placeholder.setAttribute("data-uploading", "true");
-                placeholder.style.maxWidth = "100%";
-                placeholder.style.height = "auto";
-                placeholder.style.display = "block";
-                placeholder.style.margin = "16px 0";
-                placeholder.style.opacity = "0.5";
+                placeholder.className = "rte-image rte-image-uploading";
                 // Use a tiny transparent gif as placeholder src
                 placeholder.src =
                     "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -462,18 +458,21 @@ export const Editor: React.FC<EditorProps> = ({
                 // Upload
                 const url = await onImageUpload(file);
 
+                // Parse the "url|__aid__:attachmentId" convention
+                let realUrl = url;
+                if (url.includes("|__aid__:")) {
+                    const idx = url.indexOf("|__aid__:");
+                    realUrl = url.substring(0, idx);
+                    const attachmentId = url.substring(idx + "|__aid__:".length);
+                    if (attachmentId) {
+                        placeholder.setAttribute("data-attachment-id", attachmentId);
+                    }
+                }
+
                 // Replace placeholder with final image
-                placeholder.src = url;
+                placeholder.src = realUrl;
                 placeholder.removeAttribute("data-uploading");
                 placeholder.style.opacity = "1";
-
-                // Preserve data-attachment-id if returned in a special format
-                // The onImageUpload callback can return "url|attachmentId"
-                if (url.includes("|__aid__:")) {
-                    const [realUrl, aid] = url.split("|__aid__:");
-                    placeholder.src = realUrl;
-                    placeholder.setAttribute("data-attachment-id", aid);
-                }
 
                 notifyChange(domToContent(editor));
             } catch (err) {
@@ -693,14 +692,31 @@ function handleInsertImage(
     return true;
 }
 
+/**
+ * Creates an <img> element from a src string.
+ *
+ * Supports an extended format for passing attachment metadata:
+ *   "url|__aid__:attachmentId"
+ * If that format is detected, the real URL is extracted and
+ * data-attachment-id is set on the element.
+ */
 function createImageElement(src: string): HTMLImageElement {
     const img = document.createElement("img");
-    img.setAttribute("src", src);
+
+    let realSrc = src;
+    // Parse the "url|__aid__:attachmentId" convention
+    if (src.includes("|__aid__:")) {
+        const idx = src.indexOf("|__aid__:");
+        realSrc = src.substring(0, idx);
+        const attachmentId = src.substring(idx + "|__aid__:".length);
+        if (attachmentId) {
+            img.setAttribute("data-attachment-id", attachmentId);
+        }
+    }
+
+    img.setAttribute("src", realSrc);
     img.setAttribute("alt", "");
-    img.style.maxWidth = "100%";
-    img.style.height = "auto";
-    img.style.display = "block";
-    img.style.margin = "16px 0";
+    img.className = "rte-image";
     return img;
 }
 

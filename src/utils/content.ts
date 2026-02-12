@@ -384,10 +384,7 @@ export function contentToDOM(
                     img.setAttribute("data-uploading", "true");
                 }
             }
-            img.style.maxWidth = "100%";
-            img.style.height = "auto";
-            img.style.display = "block";
-            img.style.margin = "16px 0";
+            img.className = "rte-image";
             return img;
         }
 

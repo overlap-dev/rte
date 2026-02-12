@@ -3,6 +3,17 @@ import { Plugin, EditorAPI, ButtonProps } from '../types';
 import { IconWrapper } from '../components/IconWrapper';
 
 /**
+ * Extracts the display URL from the raw onImageUpload return value.
+ * Strips the "|__aid__:attachmentId" suffix if present.
+ */
+function getDisplayUrl(raw: string): string {
+  if (raw.includes('|__aid__:')) {
+    return raw.substring(0, raw.indexOf('|__aid__:'));
+  }
+  return raw;
+}
+
+/**
  * Image-Plugin mit URL-Eingabe und File-Upload
  */
 export function createImagePlugin(onImageUpload?: (file: File) => Promise<string>): Plugin {
@@ -11,6 +22,8 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
     type: 'block',
     renderButton: (props: ButtonProps & { editorAPI?: EditorAPI }) => {
       const [showModal, setShowModal] = useState(false);
+      // rawUrl stores the full value returned by onImageUpload (may contain |__aid__:)
+      const [rawUrl, setRawUrl] = useState('');
       const [imageUrl, setImageUrl] = useState('');
       const [altText, setAltText] = useState('');
       const [isUploading, setIsUploading] = useState(false);
@@ -19,19 +32,19 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
       const handleInsertImage = () => {
         if (!props.editorAPI) return;
         
-        const src = imageUrl.trim();
+        // Use the raw URL (with |__aid__: if present) — createImageElement will parse it
+        const src = (rawUrl || imageUrl).trim();
         
         if (!src) {
           alert('Bitte geben Sie eine Bild-URL ein');
           return;
         }
 
-        // Verwende executeCommand, das alles korrekt handhabt
-        // Alt-Text wird später über das Datenmodell gespeichert
         props.editorAPI.executeCommand('insertImage', src);
 
         // Modal schließen
         setShowModal(false);
+        setRawUrl('');
         setImageUrl('');
         setAltText('');
       };
@@ -49,7 +62,10 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
 
         try {
           const uploadedUrl = await onImageUpload(file);
-          setImageUrl(uploadedUrl);
+          // Store the raw return value (may contain |__aid__:attachmentId)
+          setRawUrl(uploadedUrl);
+          // Display URL strips the metadata suffix
+          setImageUrl(getDisplayUrl(uploadedUrl));
         } catch (error) {
           console.error('Image upload failed:', error);
           alert('Fehler beim Hochladen des Bildes');
@@ -130,7 +146,11 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                       <input
                         type="url"
                         value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
+                        onChange={(e) => {
+                          setImageUrl(e.target.value);
+                          // Clear raw URL when user manually edits
+                          setRawUrl('');
+                        }}
                         placeholder="https://example.com/image.jpg"
                         className="rte-image-url-input"
                       />
