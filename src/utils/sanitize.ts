@@ -106,8 +106,12 @@ function sanitizeNode(node: Node): void {
                 // Validate URL attributes
                 if (name === "href" || name === "src" || name === "action" || name === "cite" || name === "poster") {
                     const value = attr.value.trim();
-                    if (value && !ALLOWED_SCHEMES.test(value)) {
-                        attrsToRemove.push(attr.name);
+                    if (value) {
+                        // Allow data:image/* for img src (matches contentToDOM behavior)
+                        const isDataImage = name === "src" && el.tagName === "IMG" && value.startsWith("data:image/");
+                        if (!isDataImage && !ALLOWED_SCHEMES.test(value)) {
+                            attrsToRemove.push(attr.name);
+                        }
                     }
                 }
 

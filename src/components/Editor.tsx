@@ -88,7 +88,13 @@ export const Editor: React.FC<EditorProps> = ({
             return buildPluginsFromSettings(settings, opts);
         }
 
-        const allPlugins = [...(providedPlugins || defaultPlugins)];
+        // When plugins are explicitly provided, use them as-is
+        if (providedPlugins) {
+            return [...providedPlugins];
+        }
+
+        // Default plugins path: apply shorthand customizations
+        const allPlugins = [...defaultPlugins];
 
         if (headings && headings.length > 0) {
             const blockFormatIndex = allPlugins.findIndex(
