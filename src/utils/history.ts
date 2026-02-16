@@ -25,7 +25,7 @@ export class HistoryManager {
     // Limit history size
     if (this.history.length > this.maxHistorySize) {
       this.history.shift();
-      this.currentIndex--;
+      this.currentIndex = Math.max(0, this.currentIndex - 1);
     }
   }
 

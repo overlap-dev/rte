@@ -18,33 +18,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
     useEffect(() => {
         setIsClient(true);
-        
+        const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+
         const handleSelectionChange = () => {
             setUpdateTrigger((prev) => prev + 1);
         };
 
         const handleMouseUp = () => {
-            setTimeout(handleSelectionChange, 10);
+            timeoutIds.push(setTimeout(handleSelectionChange, 10));
         };
 
         const handleKeyUp = () => {
-            setTimeout(handleSelectionChange, 10);
+            timeoutIds.push(setTimeout(handleSelectionChange, 10));
         };
 
         if (typeof document !== 'undefined') {
-        document.addEventListener("selectionchange", handleSelectionChange);
-        document.addEventListener("mouseup", handleMouseUp);
-        document.addEventListener("keyup", handleKeyUp);
+            document.addEventListener("selectionchange", handleSelectionChange);
+            document.addEventListener("mouseup", handleMouseUp);
+            document.addEventListener("keyup", handleKeyUp);
         }
 
         return () => {
+            timeoutIds.forEach(clearTimeout);
             if (typeof document !== 'undefined') {
-            document.removeEventListener(
-                "selectionchange",
-                handleSelectionChange
-            );
-            document.removeEventListener("mouseup", handleMouseUp);
-            document.removeEventListener("keyup", handleKeyUp);
+                document.removeEventListener(
+                    "selectionchange",
+                    handleSelectionChange,
+                );
+                document.removeEventListener("mouseup", handleMouseUp);
+                document.removeEventListener("keyup", handleKeyUp);
             }
         };
     }, []);
@@ -69,6 +71,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
     // Roving tabindex keyboard navigation (ARIA toolbar pattern)
     const handleToolbarKeyDown = useCallback((e: React.KeyboardEvent) => {
+        // Escape: return focus to the editor
+        if (e.key === "Escape") {
+            e.preventDefault();
+            const container = toolbarRef.current?.closest(".rte-container");
+            const editor = container?.querySelector<HTMLElement>(".rte-editor");
+            if (editor) editor.focus();
+            return;
+        }
+
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
 
         const toolbar = toolbarRef.current;
@@ -117,6 +128,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             onKeyDown={handleToolbarKeyDown}
             role="toolbar"
             aria-label="Text formatting"
+            aria-orientation="horizontal"
         >
             <div className="rte-toolbar-left">
                 {leftPlugins.map((plugin) => {

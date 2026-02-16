@@ -36,7 +36,7 @@ export { indentListItem, outdentListItem } from "./utils/listIndent";
 export * from "./utils/stateReflection";
 
 // Sanitization
-export { sanitizeHtml } from "./utils/sanitize";
+export { sanitizeHtml, isUrlSafe } from "./utils/sanitize";
 
 // DOM utilities
 export { isCheckboxList, findClosestCheckboxList } from "./utils/dom";

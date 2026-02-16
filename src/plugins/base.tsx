@@ -47,7 +47,7 @@ export function createInlinePlugin(
     },
     canExecute: (editor: EditorAPI) => {
       // Formatting should also work without a selection
-      // (z.B. wenn Editor leer ist, wird beim Klick eine Selection erstellt)
+      // (e.g. when the editor is empty, a selection is created on click)
       return true;
     },
   };

@@ -14,6 +14,7 @@ interface UseEditorEventsOptions {
     editorRef: React.RefObject<HTMLDivElement | null>;
     historyRef: { current: HistoryManager };
     isUpdatingRef: { current: boolean };
+    mountedRef: { current: boolean };
     notifyChange: (content: EditorContent) => void;
     handleCheckboxKeyDown: (e: KeyboardEvent) => boolean;
     handleCheckboxEnter: (e: KeyboardEvent) => boolean;
@@ -28,6 +29,7 @@ export function useEditorEvents({
     editorRef,
     historyRef,
     isUpdatingRef,
+    mountedRef,
     notifyChange,
     handleCheckboxKeyDown,
     handleCheckboxEnter,
@@ -42,11 +44,13 @@ export function useEditorEvents({
 
         const handleInput = () => {
             setTimeout(() => {
+                if (!mountedRef.current) return;
                 const content = domToContent(editor);
                 notifyChange(content);
 
                 if (inputTimeout) clearTimeout(inputTimeout);
                 inputTimeout = setTimeout(() => {
+                    if (!mountedRef.current) return;
                     const sel = serializeSelection(editor);
                     historyRef.current.push(content, sel);
                     inputTimeout = null;
@@ -60,6 +64,7 @@ export function useEditorEvents({
             // Markdown-style shortcuts (e.g., # + space → heading)
             if (!isModifierPressed && handleMarkdownShortcut(editor, e)) {
                 setTimeout(() => {
+                    if (!mountedRef.current) return;
                     const content = domToContent(editor);
                     notifyChange(content);
                 }, 0);
@@ -86,6 +91,7 @@ export function useEditorEvents({
                     e.stopImmediatePropagation();
                     navigateTableCell(e.shiftKey ? "prev" : "next");
                     setTimeout(() => {
+                        if (!mountedRef.current) return;
                         if (editor) {
                             const content = domToContent(editor);
                             notifyChange(content);
@@ -122,6 +128,7 @@ export function useEditorEvents({
                     }
 
                     setTimeout(() => {
+                        if (!mountedRef.current) return;
                         if (editor) {
                             const content = domToContent(editor);
                             notifyChange(content);
@@ -227,6 +234,7 @@ export function useEditorEvents({
                     }
 
                     setTimeout(() => {
+                        if (!mountedRef.current) return;
                         if (editor) {
                             const content = domToContent(editor);
                             notifyChange(content);

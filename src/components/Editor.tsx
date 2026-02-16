@@ -28,7 +28,7 @@ import {
 } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
-import { sanitizeHtml } from "../utils/sanitize";
+import { isUrlSafe, sanitizeHtml } from "../utils/sanitize";
 import {
     serializeSelection,
     restoreSerializedSelection,
@@ -67,6 +67,15 @@ export const Editor: React.FC<EditorProps> = ({
     const editorRef = useRef<HTMLDivElement>(null);
     const historyRef = useRef<HistoryManager>(new HistoryManager());
     const isUpdatingRef = useRef(false);
+    const mountedRef = useRef(true);
+
+    // Track mount status to guard async callbacks
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     // --- Plugins ---
     const plugins = useMemo(() => {
@@ -239,6 +248,7 @@ export const Editor: React.FC<EditorProps> = ({
                     value,
                     isUpdatingRef,
                     historyRef,
+                    mountedRef,
                     notifyChange,
                 );
             }
@@ -249,6 +259,7 @@ export const Editor: React.FC<EditorProps> = ({
             document.execCommand(command, false, value);
 
             setTimeout(() => {
+                if (!mountedRef.current) return;
                 if (editor && !isUpdatingRef.current) {
                     ensureAllCheckboxes(editor);
                     const content = domToContent(editor);
@@ -299,6 +310,8 @@ export const Editor: React.FC<EditorProps> = ({
                 const block = document.createElement(type);
                 if (attributes) {
                     Object.entries(attributes).forEach(([key, val]) => {
+                        // Filter out event handler attributes
+                        if (key.toLowerCase().startsWith("on")) return;
                         block.setAttribute(key, val);
                     });
                 }
@@ -323,6 +336,8 @@ export const Editor: React.FC<EditorProps> = ({
                 const inline = document.createElement(type);
                 if (attributes) {
                     Object.entries(attributes).forEach(([key, val]) => {
+                        // Filter out event handler attributes
+                        if (key.toLowerCase().startsWith("on")) return;
                         inline.setAttribute(key, val);
                     });
                 }
@@ -417,6 +432,7 @@ export const Editor: React.FC<EditorProps> = ({
             historyRef.current.push(currentContent, sel);
             operation(selection);
             setTimeout(() => {
+                if (!mountedRef.current) return;
                 if (editor) notifyChange(domToContent(editor));
             }, 0);
         }
@@ -445,6 +461,7 @@ export const Editor: React.FC<EditorProps> = ({
         editorRef,
         historyRef,
         isUpdatingRef,
+        mountedRef,
         notifyChange,
         handleCheckboxKeyDown: checkbox.handleCheckboxKeyDown,
         handleCheckboxEnter: checkbox.handleCheckboxEnter,
@@ -542,6 +559,9 @@ export const Editor: React.FC<EditorProps> = ({
                 // Upload
                 const url = await onImageUpload(file);
 
+                // Guard against unmount during async upload
+                if (!mountedRef.current) return;
+
                 // Parse the "url|__aid__:attachmentId" convention
                 let realUrl = url;
                 if (url.includes("|__aid__:")) {
@@ -556,6 +576,12 @@ export const Editor: React.FC<EditorProps> = ({
                             attachmentId,
                         );
                     }
+                }
+
+                // Validate the returned URL before setting it
+                if (!isUrlSafe(realUrl) && !realUrl.startsWith("data:image/")) {
+                    placeholder.remove();
+                    return;
                 }
 
                 // Replace placeholder with final image
@@ -736,6 +762,7 @@ function handleInsertImage(
     value: string,
     isUpdatingRef: { current: boolean },
     historyRef: { current: HistoryManager },
+    mountedRef: { current: boolean },
     notifyChange: (content: EditorContent) => void,
 ): boolean {
     let selection = window.getSelection();
@@ -759,7 +786,7 @@ function handleInsertImage(
             newRange.collapse(true);
             selection.removeAllRanges();
             selection.addRange(newRange);
-            saveAndNotify(editor, isUpdatingRef, historyRef, notifyChange);
+            saveAndNotify(editor, isUpdatingRef, historyRef, mountedRef, notifyChange);
             return true;
         }
         selection.removeAllRanges();
@@ -803,7 +830,7 @@ function handleInsertImage(
     selection.removeAllRanges();
     selection.addRange(newRange);
 
-    saveAndNotify(editor, isUpdatingRef, historyRef, notifyChange);
+    saveAndNotify(editor, isUpdatingRef, historyRef, mountedRef, notifyChange);
     return true;
 }
 
@@ -819,18 +846,32 @@ function createImageElement(src: string): HTMLImageElement {
     const img = document.createElement("img");
 
     let realSrc = src;
+    let altText = "";
+
+    // Parse the "url|__alt__:altText" convention
+    if (realSrc.includes("|__alt__:")) {
+        const altIdx = realSrc.indexOf("|__alt__:");
+        altText = realSrc.substring(altIdx + "|__alt__:".length);
+        realSrc = realSrc.substring(0, altIdx);
+    }
+
     // Parse the "url|__aid__:attachmentId" convention
-    if (src.includes("|__aid__:")) {
-        const idx = src.indexOf("|__aid__:");
-        realSrc = src.substring(0, idx);
-        const attachmentId = src.substring(idx + "|__aid__:".length);
+    if (realSrc.includes("|__aid__:")) {
+        const idx = realSrc.indexOf("|__aid__:");
+        const attachmentId = realSrc.substring(idx + "|__aid__:".length);
+        realSrc = realSrc.substring(0, idx);
         if (attachmentId) {
             img.setAttribute("data-attachment-id", attachmentId);
         }
     }
 
+    // Validate URL safety — block javascript:, data:, etc.
+    if (!isUrlSafe(realSrc) && !realSrc.startsWith("data:image/")) {
+        realSrc = "";
+    }
+
     img.setAttribute("src", realSrc);
-    img.setAttribute("alt", "");
+    img.setAttribute("alt", altText);
     img.className = "rte-image";
     return img;
 }
@@ -839,10 +880,12 @@ function saveAndNotify(
     editor: HTMLElement,
     isUpdatingRef: { current: boolean },
     historyRef: { current: HistoryManager },
+    mountedRef: { current: boolean },
     notifyChange: (content: EditorContent) => void,
 ): void {
     isUpdatingRef.current = true;
     setTimeout(() => {
+        if (!mountedRef.current) return;
         const content = domToContent(editor);
         const sel = serializeSelection(editor);
         historyRef.current.push(content, sel);

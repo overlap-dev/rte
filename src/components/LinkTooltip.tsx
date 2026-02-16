@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { isUrlSafe } from "../utils/sanitize";
 import { Icon } from "./Icons";
 
 interface LinkTooltipProps {
@@ -105,7 +106,7 @@ export const LinkTooltip: React.FC<LinkTooltipProps> = ({ editorElement }) => {
     };
 
     const handleOpen = () => {
-        if (state.href) {
+        if (state.href && isUrlSafe(state.href)) {
             window.open(state.href, "_blank", "noopener,noreferrer");
         }
     };

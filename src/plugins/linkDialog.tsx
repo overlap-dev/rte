@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { IconWrapper } from "../components/IconWrapper";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
+import { isUrlSafe } from "../utils/sanitize";
 
 /* ══════════════════════════════════════════════════════════════════════════
    Types
@@ -241,7 +242,7 @@ const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
                         onMouseDown={(e) => e.preventDefault()}
                     >
                         <span>
-                            {showAdvanced ? "▾" : "▸"} Erweitert
+                            {showAdvanced ? "▾" : "▸"} Advanced
                         </span>
                     </button>
 
@@ -302,7 +303,7 @@ const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={onRemove}
                     >
-                        Entfernen
+                        Remove
                     </button>
                 )}
                 <div style={{ flex: 1 }} />
@@ -312,7 +313,7 @@ const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={onClose}
                 >
-                    Abbrechen
+                    Cancel
                 </button>
                 <button
                     type="button"
@@ -323,7 +324,7 @@ const FloatingLinkEditor: React.FC<FloatingLinkEditorProps> = ({
                         !data.url.trim() || data.url.trim() === "https://"
                     }
                 >
-                    Speichern
+                    Save
                 </button>
             </div>
         </div>,
@@ -389,6 +390,8 @@ function applyLinkData(
             href += data.custom[field.key];
         }
     }
+    // Validate URL before setting href to prevent javascript: / data: injection
+    if (!isUrlSafe(href)) return;
     link.setAttribute("href", href);
 
     // Target
@@ -487,7 +490,7 @@ const LinkToolbarButton: React.FC<LinkButtonProps> = (props) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const href = link.getAttribute("href");
-                if (href) window.open(href, "_blank");
+                if (href && isUrlSafe(href)) window.open(href, "_blank");
                 return;
             }
 
@@ -532,6 +535,7 @@ const LinkToolbarButton: React.FC<LinkButtonProps> = (props) => {
                         href += data.custom[field.key];
                     }
                 }
+                if (!isUrlSafe(href)) return;
                 document.execCommand("createLink", false, href);
                 const newLink = getSelectedLink();
                 if (newLink) {

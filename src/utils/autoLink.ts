@@ -5,8 +5,10 @@
  * Triggered after space/enter when the preceding word looks like a URL.
  */
 
+import { isUrlSafe } from "./sanitize";
+
 const URL_REGEX =
-    /(?:https?:\/\/|www\.)[^\s<>'"]+\.[^\s<>'"]+/i;
+    /^(?:https?:\/\/|www\.)[^\s<>'"]+\.[a-z]{2,}[^\s<>'"]*$/i;
 
 /**
  * Check if the word before the cursor is a URL and wrap it in an <a> tag.
@@ -49,6 +51,9 @@ export function handleAutoLink(editor: HTMLElement, e: KeyboardEvent): boolean {
     if (href.startsWith("www.")) {
         href = "https://" + href;
     }
+
+    // Validate the URL is safe before creating a link
+    if (!isUrlSafe(href)) return false;
 
     // Create the link element
     const anchor = document.createElement("a");

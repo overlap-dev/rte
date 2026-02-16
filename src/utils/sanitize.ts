@@ -22,10 +22,17 @@ const REMOVE_TAGS = new Set([
     "meta",
     "link",
     "base",
+    "svg",
+    "math",
+    "template",
+    "details",
+    "video",
+    "audio",
+    "marquee",
 ]);
 
-/** Attributes that are always removed (event handlers, dangerous attrs). */
-const REMOVE_ATTRS_PATTERN = /^on|^data-(?!attachment-id$|placeholder$)/i;
+/** Attributes that are always removed (event handlers, dangerous data-* attrs). */
+const REMOVE_ATTRS_PATTERN = /^on|^data-(?!(attachment-id|placeholder)$)/i;
 
 /** Specific dangerous attribute names. */
 const REMOVE_ATTRS = new Set([
@@ -36,7 +43,23 @@ const REMOVE_ATTRS = new Set([
 ]);
 
 /** Allowed URL schemes for href/src attributes. */
-const ALLOWED_SCHEMES = /^(https?:|mailto:|tel:|#|\/)/i;
+const ALLOWED_SCHEMES = /^(https?:|mailto:|tel:|#|\/(?!\/))/i;
+
+/**
+ * Check if a URL is safe to set as href/src.
+ * Blocks javascript:, data:, vbscript:, and unknown schemes.
+ * Strips control characters before checking.
+ */
+export function isUrlSafe(url: string): boolean {
+    if (!url) return false;
+    // Strip control characters and whitespace that could obfuscate schemes
+    const cleaned = url.trim().replace(/[\x00-\x1f\x7f]/g, "");
+    if (!cleaned) return false;
+    // Block protocol-relative URLs (//evil.com)
+    if (cleaned.startsWith("//")) return false;
+    // Must match an allowed scheme or be a relative path
+    return ALLOWED_SCHEMES.test(cleaned);
+}
 
 /**
  * Sanitize an HTML string by stripping dangerous tags and attributes.
@@ -81,15 +104,20 @@ function sanitizeNode(node: Node): void {
                 }
 
                 // Validate URL attributes
-                if (name === "href" || name === "src" || name === "action") {
+                if (name === "href" || name === "src" || name === "action" || name === "cite" || name === "poster") {
                     const value = attr.value.trim();
                     if (value && !ALLOWED_SCHEMES.test(value)) {
                         attrsToRemove.push(attr.name);
                     }
                 }
 
-                // Remove javascript: in any attribute value
-                if (attr.value.toLowerCase().includes("javascript:")) {
+                // Remove dangerous URI schemes in any attribute value
+                const lowerValue = attr.value.toLowerCase().replace(/[\x00-\x1f\x7f\s]/g, "");
+                if (
+                    lowerValue.includes("javascript:") ||
+                    lowerValue.includes("vbscript:") ||
+                    lowerValue.includes("data:text/html")
+                ) {
                     attrsToRemove.push(attr.name);
                 }
             }

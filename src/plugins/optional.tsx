@@ -1,5 +1,6 @@
 import { IconWrapper } from "../components/IconWrapper";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
+import { isUrlSafe } from "../utils/sanitize";
 
 /**
  * Link plugin with improved functionality
@@ -38,7 +39,7 @@ export function createLinkPlugin(): Plugin {
             const existingLink = element?.closest("a") as HTMLAnchorElement;
 
             if (existingLink) {
-                // Link entfernen
+                // Remove link
                 const parent = existingLink.parentNode;
                 if (parent) {
                     while (existingLink.firstChild) {
@@ -48,7 +49,7 @@ export function createLinkPlugin(): Plugin {
                         );
                     }
                     parent.removeChild(existingLink);
-                    // Content aktualisieren
+                    // Update content
                     const editorEl = editor.getSelection()?.anchorNode;
                     if (editorEl) {
                         const content = editor.getContent();
@@ -58,7 +59,7 @@ export function createLinkPlugin(): Plugin {
             } else {
                 // Insert new link
                 const url = prompt("Enter URL:");
-                if (url) {
+                if (url && isUrlSafe(url)) {
                     editor.executeCommand("createLink", url);
                 }
             }

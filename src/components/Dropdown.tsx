@@ -47,6 +47,19 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     const currentOption = options.find(opt => opt.value === currentValue);
 
+    // Close on Escape key
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen]);
+
     return (
         <div className="rte-dropdown" ref={dropdownRef} onMouseDown={(e) => e.preventDefault()}>
             <button
@@ -56,6 +69,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 className={`rte-toolbar-button rte-dropdown-button ${currentOption ? 'rte-dropdown-button-has-value' : ''}`}
                 title={label}
                 aria-label={label}
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
             >
                 <Icon icon={icon} width={18} height={18} />
                 {currentOption && (
@@ -63,11 +78,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 )}
             </button>
             {isOpen && (
-                <div className="rte-dropdown-menu">
+                <div className="rte-dropdown-menu" role="listbox" aria-label={label}>
                     {options.map((option) => (
                         <button
                             key={option.value}
                             type="button"
+                            role="option"
+                            aria-selected={currentValue === option.value}
                             className={`rte-dropdown-item ${currentValue === option.value ? 'rte-dropdown-item-active' : ''}`}
                             onClick={() => handleSelect(option.value)}
                         >

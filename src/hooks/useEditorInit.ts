@@ -57,6 +57,8 @@ export function useEditorInit({
         ensureAllCheckboxes(editor);
 
         // MutationObserver: ensure new checkbox list items get correct attributes
+        let checkboxTimeout: ReturnType<typeof setTimeout> | null = null;
+
         const observer = new MutationObserver((mutations) => {
             if (isUpdatingRef.current) return;
 
@@ -89,13 +91,15 @@ export function useEditorInit({
             }
 
             if (needsUpdate) {
-                setTimeout(() => ensureAllCheckboxes(editor), 0);
+                if (checkboxTimeout) clearTimeout(checkboxTimeout);
+                checkboxTimeout = setTimeout(() => ensureAllCheckboxes(editor), 0);
             }
         });
 
         observer.observe(editor, { childList: true, subtree: true });
 
         return () => {
+            if (checkboxTimeout) clearTimeout(checkboxTimeout);
             observer.disconnect();
         };
         // Only run once on mount

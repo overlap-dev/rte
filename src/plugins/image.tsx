@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Plugin, EditorAPI, ButtonProps } from '../types';
 import { IconWrapper } from '../components/IconWrapper';
+import { isUrlSafe } from '../utils/sanitize';
 
 /**
  * Extracts the display URL from the raw onImageUpload return value.
@@ -14,7 +15,7 @@ function getDisplayUrl(raw: string): string {
 }
 
 /**
- * Image-Plugin mit URL-Eingabe und File-Upload
+ * Image plugin with URL input and file upload support.
  */
 export function createImagePlugin(onImageUpload?: (file: File) => Promise<string>): Plugin {
   return {
@@ -40,7 +41,18 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
           return;
         }
 
-        props.editorAPI.executeCommand('insertImage', src);
+        // Validate URL safety
+        const srcWithoutMeta = src.split('|__aid__:')[0];
+        if (!isUrlSafe(srcWithoutMeta)) {
+          alert('Invalid image URL');
+          return;
+        }
+
+        // Append alt text metadata if provided
+        const fullValue = altText.trim()
+            ? `${src}|__alt__:${altText.trim()}`
+            : src;
+        props.editorAPI.executeCommand('insertImage', fullValue);
 
         // Close modal
         setShowModal(false);
@@ -127,7 +139,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                           {isUploading ? (
                             <>
                               <IconWrapper icon="mdi:loading" width={24} height={24} className="rte-spin" />
-                              <span>Wird hochgeladen...</span>
+                              <span>Uploading...</span>
                             </>
                           ) : (
                             <>
@@ -142,7 +154,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
 
                   <div className="rte-image-url-section">
                     <label>
-                      Bild-URL
+                      Image URL
                       <input
                         type="url"
                         value={imageUrl}
@@ -159,7 +171,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
 
                   <div className="rte-image-alt-section">
                     <label>
-                      Alt-Text (optional)
+                      Alt Text (optional)
                       <input
                         type="text"
                         value={altText}
@@ -183,7 +195,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                     onClick={() => setShowModal(false)}
                     className="rte-image-modal-cancel"
                   >
-                    Abbrechen
+                    Cancel
                   </button>
                   <button
                     type="button"

@@ -84,7 +84,7 @@ export { HistoryManager } from "./utils/history";
 export { serializeSelection, restoreSerializedSelection } from "./utils/selection";
 
 // Sanitization
-export { sanitizeHtml } from "./utils/sanitize";
+export { sanitizeHtml, isUrlSafe } from "./utils/sanitize";
 
 // List operations
 export { indentListItem, outdentListItem } from "./utils/listIndent";

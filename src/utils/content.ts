@@ -2,6 +2,46 @@ import React from "react";
 import { EditorContent, EditorNode } from "../types";
 import { ensureAllCheckboxes } from "./checkbox";
 import { isCheckboxList } from "./dom";
+import { isUrlSafe, sanitizeHtml } from "./sanitize";
+
+/** Allowed tag names that contentToDOM may create from JSON. */
+const ALLOWED_CONTENT_TAGS = new Set([
+    "p", "div", "span", "h1", "h2", "h3", "h4", "h5", "h6",
+    "ul", "ol", "li", "a", "strong", "em", "u", "s", "del",
+    "sub", "sup", "code", "pre", "blockquote", "br", "hr",
+    "img", "table", "thead", "tbody", "tr", "th", "td",
+    "b", "i", "strike",
+]);
+
+/** Checks if an attribute key is safe to set on a DOM element. */
+function isSafeAttribute(key: string): boolean {
+    const lower = key.toLowerCase();
+    // Block all event handler attributes
+    if (lower.startsWith("on")) return false;
+    // Block dangerous attributes
+    if (lower === "srcdoc" || lower === "formaction" || lower === "xlink:href" || lower === "ping") return false;
+    return true;
+}
+
+/** Validates style values against expected patterns. */
+function isSafeStyleValue(prop: string, value: string): boolean {
+    const clean = value.trim().toLowerCase();
+    // Block expression(), url(), import, javascript, and other injection vectors
+    if (/expression\s*\(|url\s*\(|@import|javascript:|vbscript:|-moz-binding/i.test(clean)) {
+        return false;
+    }
+    switch (prop) {
+        case "fontSize":
+            return /^[\d.]+(px|em|rem|pt|%|vw|vh)$/i.test(clean);
+        case "color":
+        case "backgroundColor":
+            return /^(#[0-9a-f]{3,8}|rgb\([\d\s,.%]+\)|rgba\([\d\s,.%]+\)|[a-z]+)$/i.test(clean);
+        case "textAlign":
+            return /^(left|right|center|justify|start|end)$/.test(clean);
+        default:
+            return true;
+    }
+}
 
 /**
  * Converts a DOM element (editor root) to EditorContent JSON.
@@ -376,8 +416,13 @@ export function contentToDOM(
         if (node.type === "image") {
             const img = document.createElement("img");
             if (node.attributes) {
-                if (node.attributes.src)
-                    img.setAttribute("src", node.attributes.src);
+                if (node.attributes.src) {
+                    // Allow data:image/* for placeholders/uploads, otherwise validate
+                    const imgSrc = node.attributes.src;
+                    if (isUrlSafe(imgSrc) || imgSrc.startsWith("data:image/")) {
+                        img.setAttribute("src", imgSrc);
+                    }
+                }
                 if (node.attributes.alt)
                     img.setAttribute("alt", node.attributes.alt);
                 if (node.attributes.uploading === "true") {
@@ -408,20 +453,25 @@ export function contentToDOM(
             }
         }
 
+        // Whitelist check: fall back to span for unknown/dangerous tags
+        if (!ALLOWED_CONTENT_TAGS.has(tagName)) {
+            tagName = "span";
+        }
+
         const element = document.createElement(tagName);
 
         if (node.attributes) {
             Object.entries(node.attributes).forEach(([key, value]) => {
                 if (key === "fontSize") {
-                    element.style.fontSize = value;
+                    if (isSafeStyleValue("fontSize", value)) element.style.fontSize = value;
                 } else if (key === "color") {
-                    element.style.color = value;
+                    if (isSafeStyleValue("color", value)) element.style.color = value;
                 } else if (key === "backgroundColor") {
-                    element.style.backgroundColor = value;
+                    if (isSafeStyleValue("backgroundColor", value)) element.style.backgroundColor = value;
                 } else if (key === "textAlign") {
-                    element.style.textAlign = value;
+                    if (isSafeStyleValue("textAlign", value)) element.style.textAlign = value;
                 } else if (key === "href" && tagName === "a") {
-                    element.setAttribute("href", value);
+                    if (isUrlSafe(value)) element.setAttribute("href", value);
                 } else if (key === "target" && tagName === "a") {
                     element.setAttribute("target", value);
                 } else if (key === "rel" && tagName === "a") {
@@ -442,8 +492,14 @@ export function contentToDOM(
                     element.className = value;
                 } else if (key === "checkboxChecked") {
                     // Handled separately below
-                } else {
-                    element.setAttribute(key, value);
+                } else if (isSafeAttribute(key)) {
+                    // Validate URL-like attribute values
+                    const lowerKey = key.toLowerCase();
+                    if (["cite", "action", "poster", "background"].includes(lowerKey)) {
+                        if (isUrlSafe(value)) element.setAttribute(key, value);
+                    } else {
+                        element.setAttribute(key, value);
+                    }
                 }
             });
         }
@@ -504,9 +560,11 @@ export function contentToHTML(content: EditorContent): string {
 /**
  * Converts an HTML string to EditorContent.
  * Supports Lexical, GitHub, and standard HTML formats.
+ * Sanitizes HTML before parsing to prevent XSS.
  */
 export function htmlToContent(htmlString: string): EditorContent {
+    const sanitized = sanitizeHtml(htmlString);
     const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = htmlString;
+    tempDiv.innerHTML = sanitized;
     return domToContent(tempDiv);
 }

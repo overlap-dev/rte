@@ -78,7 +78,7 @@ export function clearFormatting(selection: Selection): void {
     
   } catch (error) {
     console.error('Error clearing formatting:', error);
-    // Fallback: Einfache Methode
+    // Fallback: simple method
     document.execCommand('removeFormat', false);
     document.execCommand('unlink', false);
   }

@@ -28,26 +28,26 @@ export function indentListItem(selection: Selection): boolean {
     }
   }
 
-  // Max depth: 6 (wie in HTML Standard)
+  // Max depth: 6 (as per HTML standard)
   if (depth >= 6) return false;
 
-  // Finde vorheriges List-Item
+  // Find previous list item
   const previousItem = listItem.previousElementSibling as HTMLElement | null;
   
   if (previousItem && previousItem.tagName === 'LI') {
-    // Erstelle verschachtelte Liste im vorherigen Item
+    // Create nested list in the previous item
     let nestedList = previousItem.querySelector('ul, ol');
     
     if (!nestedList) {
-      // Erstelle neue verschachtelte Liste
+      // Create new nested list
       nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
       previousItem.appendChild(nestedList);
     }
     
-    // Verschiebe aktuelles Item in verschachtelte Liste
+    // Move current item into nested list
     nestedList.appendChild(listItem);
     
-    // Cursor setzen
+    // Set cursor position
     const textNode = listItem.firstChild;
     if (textNode && textNode.nodeType === Node.TEXT_NODE) {
       range.setStart(textNode, 0);
@@ -66,10 +66,10 @@ export function indentListItem(selection: Selection): boolean {
     
     return true;
   } else {
-    // Kein vorheriges Item - erstelle neue verschachtelte Liste im aktuellen Item
+    // No previous item — create new nested list in current item
     const nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
     
-    // Verschiebe alle nachfolgenden Items in die verschachtelte Liste
+    // Move all following items into the nested list
     let nextSibling = listItem.nextElementSibling;
     while (nextSibling && nextSibling.tagName === 'LI') {
       const toMove = nextSibling;
@@ -80,12 +80,12 @@ export function indentListItem(selection: Selection): boolean {
     if (nestedList.children.length > 0) {
       listItem.appendChild(nestedList);
     } else {
-      // Wenn keine nachfolgenden Items, erstelle leeres Sub-Item
+      // If no following items, create empty sub-item
       const subItem = document.createElement('li');
       nestedList.appendChild(subItem);
       listItem.appendChild(nestedList);
       
-      // Cursor ins Sub-Item setzen
+      // Set cursor in sub-item
       const newText = document.createTextNode('');
       subItem.appendChild(newText);
       range.setStart(newText, 0);
@@ -118,7 +118,7 @@ export function outdentListItem(selection: Selection): boolean {
   // Check if in nested list
   const parentListItem = list.parentElement;
   if (!parentListItem || parentListItem.tagName !== 'LI') {
-    // Bereits auf oberstem Level
+    // Already at top level
     return false;
   }
 
@@ -127,11 +127,11 @@ export function outdentListItem(selection: Selection): boolean {
     return false;
   }
 
-  // Verschiebe Item auf oberes Level
-  // Finde Position nach dem Parent-Item
+  // Move item to parent level
+  // Find position after the parent item
   const insertAfter = parentListItem;
   
-  // Verschiebe Item und alle nachfolgenden Items aus der verschachtelten Liste
+  // Move item and all following items out of the nested list
   const itemsToMove: HTMLElement[] = [listItem];
   let nextSibling = listItem.nextElementSibling;
   while (nextSibling && nextSibling.tagName === 'LI') {
@@ -144,12 +144,12 @@ export function outdentListItem(selection: Selection): boolean {
     parentList.insertBefore(item, insertAfter.nextSibling);
   });
 
-  // Entferne leere verschachtelte Liste
+  // Remove empty nested list
   if (list.children.length === 0) {
     list.remove();
   }
 
-  // Cursor setzen
+  // Set cursor position
   const textNode = listItem.firstChild;
   if (textNode && textNode.nodeType === Node.TEXT_NODE) {
     range.setStart(textNode, 0);
