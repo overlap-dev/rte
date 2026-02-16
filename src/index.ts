@@ -35,6 +35,9 @@ export type { SelectionState, SelectionPoint } from "./utils/selection";
 export { indentListItem, outdentListItem } from "./utils/listIndent";
 export * from "./utils/stateReflection";
 
+// Sanitization
+export { sanitizeHtml } from "./utils/sanitize";
+
 // DOM utilities
 export { isCheckboxList, findClosestCheckboxList } from "./utils/dom";
 

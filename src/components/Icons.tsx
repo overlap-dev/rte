@@ -522,6 +522,54 @@ export const TableIcon: React.FC<IconProps> = ({
     </svg>
 );
 
+export const HorizontalRuleIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M2 12h20v2H2z" />
+    </svg>
+);
+
+export const OpenInNewIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M19 19H5V5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />
+    </svg>
+);
+
+export const ContentCopyIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+    </svg>
+);
+
 const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-bold": BoldIcon,
     "mdi:format-italic": ItalicIcon,
@@ -554,6 +602,9 @@ const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-align-right": AlignRightIcon,
     "mdi:format-align-justify": AlignJustifyIcon,
     "mdi:table": TableIcon,
+    "mdi:minus": HorizontalRuleIcon,
+    "mdi:open-in-new": OpenInNewIcon,
+    "mdi:content-copy": ContentCopyIcon,
 };
 
 export const Icon: React.FC<{

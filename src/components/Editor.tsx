@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCheckbox } from "../hooks/useCheckbox";
 import { useEditorEvents } from "../hooks/useEditorEvents";
 import { useEditorInit } from "../hooks/useEditorInit";
@@ -28,12 +28,14 @@ import {
 } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
+import { sanitizeHtml } from "../utils/sanitize";
 import {
     serializeSelection,
     restoreSerializedSelection,
 } from "../utils/selection";
 import { buildPluginsFromSettings } from "../utils/settings";
 import { FloatingToolbar } from "./FloatingToolbar";
+import { LinkTooltip } from "./LinkTooltip";
 import { Toolbar } from "./Toolbar";
 
 export const Editor: React.FC<EditorProps> = ({
@@ -55,6 +57,11 @@ export const Editor: React.FC<EditorProps> = ({
     onImageUpload,
     settings,
     settingsOptions,
+    readOnly,
+    onFocus,
+    onBlur,
+    maxLength,
+    showWordCount,
 }) => {
     // --- Shared Refs ---
     const editorRef = useRef<HTMLDivElement>(null);
@@ -386,6 +393,15 @@ export const Editor: React.FC<EditorProps> = ({
             outdentListItem: (): void => {
                 executeWithHistory((selection) => outdentListItem(selection));
             },
+            getTextStats: (): { characters: number; words: number } => {
+                const editor = editorRef.current;
+                if (!editor) return { characters: 0, words: 0 };
+                const text = editor.innerText || "";
+                const characters = text.length;
+                const trimmed = text.trim();
+                const words = trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+                return { characters, words };
+            },
         };
 
         /** Helper: push history, execute operation, then notify change. */
@@ -440,6 +456,58 @@ export const Editor: React.FC<EditorProps> = ({
     useEffect(() => {
         if (onEditorAPIReady) onEditorAPIReady(editorAPI);
     }, [editorAPI, onEditorAPIReady]);
+
+    // --- Focus / Blur callbacks ---
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+        const handleFocus = () => onFocus?.();
+        const handleBlur = () => onBlur?.();
+        editor.addEventListener("focus", handleFocus);
+        editor.addEventListener("blur", handleBlur);
+        return () => {
+            editor.removeEventListener("focus", handleFocus);
+            editor.removeEventListener("blur", handleBlur);
+        };
+    }, [onFocus, onBlur]);
+
+    // --- Max Length enforcement ---
+    useEffect(() => {
+        if (maxLength === undefined) return;
+        const editor = editorRef.current;
+        if (!editor) return;
+        const handleBeforeInput = (e: Event) => {
+            const text = editor.innerText || "";
+            if (text.length >= maxLength) {
+                const inputEvent = e as InputEvent;
+                if (inputEvent.inputType?.startsWith("insert")) {
+                    e.preventDefault();
+                }
+            }
+        };
+        editor.addEventListener("beforeinput", handleBeforeInput);
+        return () => {
+            editor.removeEventListener("beforeinput", handleBeforeInput);
+        };
+    }, [maxLength]);
+
+    // --- Word count state ---
+    const [wordCount, setWordCount] = useState({ characters: 0, words: 0 });
+    useEffect(() => {
+        if (!showWordCount) return;
+        const editor = editorRef.current;
+        if (!editor) return;
+        const updateCount = () => {
+            const text = editor.innerText || "";
+            const characters = text.length;
+            const trimmed = text.trim();
+            const words = trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+            setWordCount({ characters, words });
+        };
+        updateCount();
+        editor.addEventListener("input", updateCount);
+        return () => editor.removeEventListener("input", updateCount);
+    }, [showWordCount]);
 
     // --- Helper: insert an image file via the onImageUpload callback ---
     const insertImageFile = useCallback(
@@ -523,11 +591,23 @@ export const Editor: React.FC<EditorProps> = ({
         }
 
         e.preventDefault();
-        const html = e.clipboardData.getData("text/html");
+
+        // Plain-text paste: Cmd/Ctrl+Shift+V
+        const nativeEvent = e.nativeEvent as ClipboardEvent & { shiftKey?: boolean };
+        if (nativeEvent.shiftKey) {
+            const text = e.clipboardData.getData("text/plain");
+            if (text) {
+                document.execCommand("insertText", false, text);
+            }
+            return;
+        }
+
+        const rawHtml = e.clipboardData.getData("text/html");
         const text = e.clipboardData.getData("text/plain");
 
-        if (html) {
+        if (rawHtml) {
             try {
+                const html = sanitizeHtml(rawHtml);
                 const pastedContent = htmlToContent(html);
                 const editor = editorRef.current;
                 if (!editor) return;
@@ -599,21 +679,23 @@ export const Editor: React.FC<EditorProps> = ({
 
     return (
         <div
-            className={`rte-container ${className || ""}`}
+            className={`rte-container ${readOnly ? "rte-container-readonly" : ""} ${className || ""}`}
             style={containerStyle}
         >
-            <Toolbar
-                plugins={plugins}
-                editorAPI={editorAPI}
-                className={toolbarClassName}
-            />
+            {!readOnly && (
+                <Toolbar
+                    plugins={plugins}
+                    editorAPI={editorAPI}
+                    className={toolbarClassName}
+                />
+            )}
             <div
                 ref={editorRef}
-                contentEditable
-                className={`rte-editor ${editorClassName || ""}`}
+                contentEditable={!readOnly}
+                className={`rte-editor ${readOnly ? "rte-editor-readonly" : ""} ${editorClassName || ""}`}
                 data-placeholder={placeholder}
-                onPaste={handlePaste}
-                onDrop={(e: React.DragEvent) => {
+                onPaste={readOnly ? undefined : handlePaste}
+                onDrop={readOnly ? undefined : (e: React.DragEvent) => {
                     const files = e.dataTransfer.files;
                     for (let i = 0; i < files.length; i++) {
                         if (files[i].type.startsWith("image/")) {
@@ -623,8 +705,7 @@ export const Editor: React.FC<EditorProps> = ({
                         }
                     }
                 }}
-                onDragOver={(e: React.DragEvent) => {
-                    // Allow drop
+                onDragOver={readOnly ? undefined : (e: React.DragEvent) => {
                     const types = e.dataTransfer.types;
                     if (types && Array.from(types).includes("Files")) {
                         e.preventDefault();
@@ -632,11 +713,19 @@ export const Editor: React.FC<EditorProps> = ({
                 }}
                 suppressContentEditableWarning
             />
-            <FloatingToolbar
-                plugins={plugins}
-                editorAPI={editorAPI}
-                editorElement={editorRef.current}
-            />
+            {!readOnly && (
+                <FloatingToolbar
+                    plugins={plugins}
+                    editorAPI={editorAPI}
+                    editorElement={editorRef.current}
+                />
+            )}
+            <LinkTooltip editorElement={editorRef.current} />
+            {showWordCount && (
+                <div className="rte-word-count">
+                    {wordCount.words} words &middot; {wordCount.characters} characters
+                </div>
+            )}
         </div>
     );
 };

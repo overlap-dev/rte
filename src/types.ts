@@ -52,6 +52,8 @@ export interface EditorAPI {
   // List Indent
   indentListItem: () => void;
   outdentListItem: () => void;
+  // Text Statistics
+  getTextStats: () => { characters: number; words: number };
 }
 
 export interface CustomRenderer {
@@ -95,5 +97,13 @@ export interface EditorProps {
   settings?: import('./utils/settings').EditorSettings;
   // Options for buildPluginsFromSettings when using settings prop
   settingsOptions?: import('./utils/settings').BuildPluginsOptions;
+  // Read-Only Mode
+  readOnly?: boolean;
+  // Focus / Blur Callbacks
+  onFocus?: () => void;
+  onBlur?: () => void;
+  // Content Limits
+  maxLength?: number;
+  showWordCount?: boolean;
 }
 

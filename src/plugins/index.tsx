@@ -115,6 +115,30 @@ export const codeInlinePlugin: Plugin = {
     canExecute: () => true,
 };
 
+/**
+ * Horizontal Rule Plugin
+ */
+export const horizontalRulePlugin: Plugin = {
+    name: "horizontalRule",
+    type: "command",
+    renderButton: (props: ButtonProps) => (
+        <button
+            type="button"
+            onClick={props.onClick}
+            disabled={props.disabled}
+            className="rte-toolbar-button"
+            title="Horizontal Rule"
+            aria-label="Horizontal Rule"
+        >
+            <IconWrapper icon="mdi:minus" width={18} height={18} />
+        </button>
+    ),
+    execute: (editor: EditorAPI) => {
+        editor.executeCommand("insertHorizontalRule");
+    },
+    canExecute: () => true,
+};
+
 export const undoPlugin: Plugin = createCommandPlugin(
     "undo",
     "undo",
@@ -240,6 +264,11 @@ export const defaultPlugins: Plugin[] = [
     boldPlugin,
     italicPlugin,
     underlinePlugin,
+    strikethroughPlugin,
+    codeInlinePlugin,
+    subscriptPlugin,
+    superscriptPlugin,
+    horizontalRulePlugin,
     clearFormattingPlugin,
     _indentPlugin,
     _outdentPlugin,

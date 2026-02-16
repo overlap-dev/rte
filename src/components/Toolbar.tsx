@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
 
 interface ToolbarProps {
@@ -14,6 +14,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
     const [updateTrigger, setUpdateTrigger] = useState(0);
     const [isClient, setIsClient] = useState(false);
+    const toolbarRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -66,8 +67,57 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         (p) => p.name === "clearFormatting"
     );
 
+    // Roving tabindex keyboard navigation (ARIA toolbar pattern)
+    const handleToolbarKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+
+        const toolbar = toolbarRef.current;
+        if (!toolbar) return;
+
+        const buttons = Array.from(
+            toolbar.querySelectorAll<HTMLButtonElement>(
+                "button:not(:disabled)"
+            )
+        );
+        if (buttons.length === 0) return;
+
+        const currentIndex = buttons.indexOf(
+            document.activeElement as HTMLButtonElement
+        );
+        if (currentIndex === -1) return;
+
+        e.preventDefault();
+
+        let nextIndex: number;
+        switch (e.key) {
+            case "ArrowRight":
+                nextIndex = (currentIndex + 1) % buttons.length;
+                break;
+            case "ArrowLeft":
+                nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+                break;
+            case "Home":
+                nextIndex = 0;
+                break;
+            case "End":
+                nextIndex = buttons.length - 1;
+                break;
+            default:
+                return;
+        }
+
+        buttons[nextIndex].focus();
+    }, []);
+
     return (
-        <div className={`rte-toolbar rte-toolbar-sticky ${className || ""}`}>
+        <div
+            ref={toolbarRef}
+            className={`rte-toolbar rte-toolbar-sticky ${className || ""}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onKeyDown={handleToolbarKeyDown}
+            role="toolbar"
+            aria-label="Text formatting"
+        >
             <div className="rte-toolbar-left">
                 {leftPlugins.map((plugin) => {
                     if (!plugin.renderButton) return null;

@@ -4,14 +4,14 @@ import { Dropdown } from '../components/Dropdown';
 import { getCurrentTextColor, getCurrentBackgroundColor } from '../utils/stateReflection';
 
 const defaultColors = [
-    { value: '#000000', label: 'Schwarz', color: '#000000' },
-    { value: '#333333', label: 'Dunkelgrau', color: '#333333' },
-    { value: '#666666', label: 'Grau', color: '#666666' },
-    { value: '#ff0000', label: 'Rot', color: '#ff0000' },
-    { value: '#0000ff', label: 'Blau', color: '#0000ff' },
+    { value: '#000000', label: 'Black', color: '#000000' },
+    { value: '#333333', label: 'Dark Gray', color: '#333333' },
+    { value: '#666666', label: 'Gray', color: '#666666' },
+    { value: '#ff0000', label: 'Red', color: '#ff0000' },
+    { value: '#0000ff', label: 'Blue', color: '#0000ff' },
     { value: '#00aa00', label: 'Green', color: '#00aa00' },
     { value: '#ffaa00', label: 'Orange', color: '#ffaa00' },
-    { value: '#aa00ff', label: 'Lila', color: '#aa00ff' },
+    { value: '#aa00ff', label: 'Purple', color: '#aa00ff' },
 ];
 
 export function createTextColorPlugin(colors: string[] = defaultColors.map(c => c.value)): Plugin {
@@ -52,6 +52,7 @@ export function createTextColorPlugin(colors: string[] = defaultColors.map(c => 
                     }}
                     currentValue={currentValue}
                     disabled={props.disabled}
+                    showCustomColorInput
                 />
             );
         },
@@ -105,6 +106,7 @@ export function createBackgroundColorPlugin(colors: string[] = defaultColors.map
                     }}
                     currentValue={currentValue}
                     disabled={props.disabled}
+                    showCustomColorInput
                 />
             );
         },

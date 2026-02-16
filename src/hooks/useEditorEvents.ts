@@ -4,7 +4,9 @@ import { EditorContent } from "../types";
 import { ensureAllCheckboxes } from "../utils/checkbox";
 import { domToContent } from "../utils/content";
 import { HistoryManager } from "../utils/history";
+import { handleAutoLink } from "../utils/autoLink";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
+import { handleMarkdownShortcut } from "../utils/markdownShortcuts";
 import { serializeSelection } from "../utils/selection";
 import { getActiveCell, navigateTableCell } from "../utils/table";
 
@@ -54,6 +56,20 @@ export function useEditorEvents({
 
         const handleKeyDown = (e: KeyboardEvent) => {
             const isModifierPressed = e.metaKey || e.ctrlKey;
+
+            // Markdown-style shortcuts (e.g., # + space → heading)
+            if (!isModifierPressed && handleMarkdownShortcut(editor, e)) {
+                setTimeout(() => {
+                    const content = domToContent(editor);
+                    notifyChange(content);
+                }, 0);
+                return;
+            }
+
+            // Auto-link: convert URLs to <a> tags on space/enter
+            if (!isModifierPressed && (e.key === " " || e.key === "Enter")) {
+                handleAutoLink(editor, e);
+            }
 
             // Checkbox Enter: create new checkbox item
             if (handleCheckboxEnter(e)) return;
@@ -137,6 +153,7 @@ export function useEditorEvents({
                 e.preventDefault();
                 e.stopPropagation();
                 undo();
+                return;
             } else if (
                 isModifierPressed &&
                 (e.key === "y" || (e.key === "z" && e.shiftKey))
@@ -144,6 +161,79 @@ export function useEditorEvents({
                 e.preventDefault();
                 e.stopPropagation();
                 redo();
+                return;
+            }
+
+            // Formatting shortcuts (Cmd/Ctrl + key)
+            // We intercept these to ensure proper history snapshots
+            if (isModifierPressed) {
+                let command: string | null = null;
+
+                if (!e.shiftKey) {
+                    switch (e.key.toLowerCase()) {
+                        case "b": command = "bold"; break;
+                        case "i": command = "italic"; break;
+                        case "u": command = "underline"; break;
+                        case "e": command = "code"; break;
+                    }
+                } else {
+                    switch (e.key.toLowerCase()) {
+                        case "x": command = "strikeThrough"; break;
+                        case "7": command = "insertOrderedList"; break;
+                        case "8": command = "insertUnorderedList"; break;
+                    }
+                }
+
+                if (command) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const currentContent = domToContent(editor);
+                    const sel = serializeSelection(editor);
+                    historyRef.current.push(currentContent, sel);
+
+                    if (command === "code") {
+                        // Inline code toggle via surroundContents
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                            const range = selection.getRangeAt(0);
+                            const container = range.commonAncestorContainer;
+                            const element =
+                                container.nodeType === Node.TEXT_NODE
+                                    ? container.parentElement
+                                    : (container as HTMLElement);
+                            const existingCode = element?.closest("code");
+                            if (existingCode) {
+                                const parent = existingCode.parentNode;
+                                if (parent) {
+                                    while (existingCode.firstChild) {
+                                        parent.insertBefore(existingCode.firstChild, existingCode);
+                                    }
+                                    parent.removeChild(existingCode);
+                                }
+                            } else if (!range.collapsed) {
+                                const code = document.createElement("code");
+                                try {
+                                    range.surroundContents(code);
+                                } catch {
+                                    const fragment = range.extractContents();
+                                    code.appendChild(fragment);
+                                    range.insertNode(code);
+                                }
+                            }
+                        }
+                    } else {
+                        document.execCommand(command, false);
+                    }
+
+                    setTimeout(() => {
+                        if (editor) {
+                            const content = domToContent(editor);
+                            notifyChange(content);
+                        }
+                    }, 0);
+                    return;
+                }
             }
         };
 

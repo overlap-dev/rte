@@ -11,6 +11,7 @@ tsconfig.json
 tools/
 node_modules/
 package-lock.json
+docs/
 
 *.log
 .DS_Store

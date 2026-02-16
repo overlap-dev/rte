@@ -153,7 +153,6 @@ export function createBlockFormatPlugin(
 
             // Helper: merge all adjacent <pre> elements in the editor into one
             const mergeAdjacentPre = () => {
-                // document.activeElement is the contenteditable after ensureEditorFocused
                 const root = document.activeElement;
                 if (!root || !root.getAttribute("contenteditable")) return;
                 const children = Array.from(root.children);

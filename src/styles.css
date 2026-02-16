@@ -1144,3 +1144,152 @@
     font-size: 0.75em;
     vertical-align: super;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Read-Only Mode
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-container-readonly {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.rte-editor-readonly {
+    cursor: default;
+    background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Word Count
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-word-count {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--rte-padding-sm) var(--rte-padding-lg);
+    font-size: 12px;
+    color: var(--rte-text-secondary);
+    border-top: 1px solid var(--rte-border-color);
+    background: var(--rte-toolbar-bg);
+    border-bottom-left-radius: var(--rte-border-radius);
+    border-bottom-right-radius: var(--rte-border-radius);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Horizontal Rule
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-editor hr {
+    border: none;
+    border-top: 2px solid var(--rte-border-color);
+    margin: var(--rte-padding-xl) 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Link Hover Tooltip
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-link-tooltip {
+    position: fixed;
+    z-index: 1002;
+    background: var(--rte-content-bg);
+    border: 1px solid var(--rte-border-color);
+    border-radius: 6px;
+    box-shadow: var(--rte-shadow-md);
+    padding: var(--rte-padding-sm) var(--rte-padding-md);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: var(--rte-padding-md);
+    max-width: 400px;
+    animation: rte-float-in 0.1s ease-out;
+}
+
+.rte-link-tooltip-url {
+    color: var(--rte-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 250px;
+    font-family: var(--rte-font-family);
+}
+
+.rte-link-tooltip-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.rte-link-tooltip-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--rte-text-secondary);
+    transition: all 0.15s ease;
+}
+
+.rte-link-tooltip-btn:hover {
+    background: var(--rte-button-hover-bg);
+    color: var(--rte-primary-color);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Custom Color Input
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-color-custom-input {
+    display: flex;
+    align-items: center;
+    gap: var(--rte-padding-sm);
+    padding: var(--rte-padding-sm) var(--rte-padding-md);
+    margin-top: var(--rte-padding-xs);
+    border-top: 1px solid var(--rte-border-color);
+}
+
+.rte-color-custom-input input[type="text"] {
+    flex: 1;
+    padding: var(--rte-padding-xs) var(--rte-padding-sm);
+    border: 1px solid var(--rte-border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    outline: none;
+    min-width: 0;
+}
+
+.rte-color-custom-input input[type="text"]:focus {
+    border-color: var(--rte-primary-color);
+    box-shadow: 0 0 0 2px var(--rte-primary-light);
+}
+
+.rte-color-custom-input input[type="color"] {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--rte-border-color);
+    border-radius: 4px;
+    padding: 0;
+    cursor: pointer;
+    background: transparent;
+}
+
+.rte-color-custom-apply {
+    padding: var(--rte-padding-xs) var(--rte-padding-sm);
+    border: none;
+    background: var(--rte-primary-color);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.rte-color-custom-apply:hover {
+    background: var(--rte-primary-hover);
+}
