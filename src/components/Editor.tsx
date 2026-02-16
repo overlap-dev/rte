@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useCheckbox } from "../hooks/useCheckbox";
 import { useEditorEvents } from "../hooks/useEditorEvents";
 import { useEditorInit } from "../hooks/useEditorInit";
-import { useEditorSelection } from "../hooks/useEditorSelection";
 import { defaultPlugins } from "../plugins";
 import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import {
@@ -29,6 +28,10 @@ import {
 } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
+import {
+    serializeSelection,
+    restoreSerializedSelection,
+} from "../utils/selection";
 import { buildPluginsFromSettings } from "../utils/settings";
 import { FloatingToolbar } from "./FloatingToolbar";
 import { Toolbar } from "./Toolbar";
@@ -142,12 +145,12 @@ export const Editor: React.FC<EditorProps> = ({
     }, []);
 
     const pushToHistory = useCallback((content: EditorContent) => {
-        historyRef.current.push(content);
+        const editor = editorRef.current;
+        const sel = editor ? serializeSelection(editor) : null;
+        historyRef.current.push(content, sel);
     }, []);
 
     // --- Hooks ---
-    const { restoreSelection } = useEditorSelection();
-
     const checkbox = useCheckbox({
         editorRef,
         isUpdatingRef,
@@ -158,48 +161,38 @@ export const Editor: React.FC<EditorProps> = ({
 
     // --- Undo / Redo ---
     const undo = useCallback(() => {
-        const content = historyRef.current.undo();
+        const entry = historyRef.current.undo();
         const editor = editorRef.current;
-        if (content && editor) {
+        if (entry && editor) {
             isUpdatingRef.current = true;
             contentToDOM(
-                content,
+                entry.content,
                 editor,
                 customLinkComponent,
                 customHeadingRenderer,
             );
-            restoreSelection(editor);
+            restoreSerializedSelection(editor, entry.selection);
             isUpdatingRef.current = false;
-            notifyChange(content);
+            notifyChange(entry.content);
         }
-    }, [
-        customLinkComponent,
-        customHeadingRenderer,
-        restoreSelection,
-        notifyChange,
-    ]);
+    }, [customLinkComponent, customHeadingRenderer, notifyChange]);
 
     const redo = useCallback(() => {
-        const content = historyRef.current.redo();
+        const entry = historyRef.current.redo();
         const editor = editorRef.current;
-        if (content && editor) {
+        if (entry && editor) {
             isUpdatingRef.current = true;
             contentToDOM(
-                content,
+                entry.content,
                 editor,
                 customLinkComponent,
                 customHeadingRenderer,
             );
-            restoreSelection(editor);
+            restoreSerializedSelection(editor, entry.selection);
             isUpdatingRef.current = false;
-            notifyChange(content);
+            notifyChange(entry.content);
         }
-    }, [
-        customLinkComponent,
-        customHeadingRenderer,
-        restoreSelection,
-        notifyChange,
-    ]);
+    }, [customLinkComponent, customHeadingRenderer, notifyChange]);
 
     // --- Editor API ---
     const editorAPI = useMemo<EditorAPI>(() => {
@@ -215,7 +208,8 @@ export const Editor: React.FC<EditorProps> = ({
                 command !== "insertCheckboxList"
             ) {
                 const currentContent = domToContent(editor);
-                historyRef.current.push(currentContent);
+                const sel = serializeSelection(editor);
+                historyRef.current.push(currentContent, sel);
             }
 
             if (command === "undo") {
@@ -403,7 +397,8 @@ export const Editor: React.FC<EditorProps> = ({
             const selection = window.getSelection();
             if (!selection || selection.rangeCount === 0) return;
             const currentContent = domToContent(editor);
-            historyRef.current.push(currentContent);
+            const sel = serializeSelection(editor);
+            historyRef.current.push(currentContent, sel);
             operation(selection);
             setTimeout(() => {
                 if (editor) notifyChange(domToContent(editor));
@@ -760,7 +755,8 @@ function saveAndNotify(
     isUpdatingRef.current = true;
     setTimeout(() => {
         const content = domToContent(editor);
-        historyRef.current.push(content);
+        const sel = serializeSelection(editor);
+        historyRef.current.push(content, sel);
         isUpdatingRef.current = false;
         notifyChange(content);
     }, 0);

@@ -5,6 +5,7 @@ import { ensureAllCheckboxes } from "../utils/checkbox";
 import { domToContent } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
+import { serializeSelection } from "../utils/selection";
 import { getActiveCell, navigateTableCell } from "../utils/table";
 
 interface UseEditorEventsOptions {
@@ -19,7 +20,7 @@ interface UseEditorEventsOptions {
 }
 
 /**
- * Hook that sets up input, keyup, and keydown event listeners on the editor.
+ * Hook that sets up input and keydown event listeners on the editor.
  */
 export function useEditorEvents({
     editorRef,
@@ -44,7 +45,8 @@ export function useEditorEvents({
 
                 if (inputTimeout) clearTimeout(inputTimeout);
                 inputTimeout = setTimeout(() => {
-                    historyRef.current.push(content);
+                    const sel = serializeSelection(editor);
+                    historyRef.current.push(content, sel);
                     inputTimeout = null;
                 }, HISTORY_DEBOUNCE_MS);
             }, 0);
@@ -94,7 +96,8 @@ export function useEditorEvents({
                     e.stopImmediatePropagation();
 
                     const currentContent = domToContent(editor);
-                    historyRef.current.push(currentContent);
+                    const sel = serializeSelection(editor);
+                    historyRef.current.push(currentContent, sel);
 
                     if (e.shiftKey) {
                         outdentListItem(selection);
@@ -145,12 +148,10 @@ export function useEditorEvents({
         };
 
         editor.addEventListener("input", handleInput);
-        editor.addEventListener("keyup", handleInput);
         editor.addEventListener("keydown", handleKeyDown, true);
 
         return () => {
             editor.removeEventListener("input", handleInput);
-            editor.removeEventListener("keyup", handleInput);
             editor.removeEventListener("keydown", handleKeyDown, true);
             if (inputTimeout) clearTimeout(inputTimeout);
         };

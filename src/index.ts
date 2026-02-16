@@ -29,6 +29,9 @@ export * from './utils/settings';
 
 // Other utilities
 export { HistoryManager } from "./utils/history";
+export type { HistoryEntry } from "./utils/history";
+export { serializeSelection, restoreSerializedSelection } from "./utils/selection";
+export type { SelectionState, SelectionPoint } from "./utils/selection";
 export { indentListItem, outdentListItem } from "./utils/listIndent";
 export * from "./utils/stateReflection";
 
