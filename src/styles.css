@@ -9,9 +9,9 @@
     --rte-content-bg: #ffffff;
     --rte-text-color: #111827;
     --rte-text-secondary: #6b7280;
-    --rte-primary-color: #3b82f6;
-    --rte-primary-hover: #2563eb;
-    --rte-primary-light: rgba(59, 130, 246, 0.15);
+    --rte-primary-color: #339192;
+    --rte-primary-hover: #2a7a7b;
+    --rte-primary-light: rgba(51, 145, 146, 0.15);
     --rte-danger-color: #dc2626;
     --rte-danger-light: #fef2f2;
     --rte-danger-border: #fca5a5;
@@ -96,6 +96,35 @@
     background: var(--rte-border-color);
     margin: 0 var(--rte-padding-sm);
     flex-shrink: 0;
+}
+
+/* Floating Toolbar (appears on text selection) */
+.rte-floating-toolbar {
+    z-index: 1001;
+    background: var(--rte-content-bg);
+    border: 1px solid var(--rte-border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    padding: var(--rte-padding-xs);
+    animation: rte-float-in 0.12s ease-out;
+    pointer-events: auto;
+}
+
+@keyframes rte-float-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.rte-floating-toolbar-content {
+    display: flex;
+    align-items: center;
+    gap: 2px;
 }
 
 /* Toolbar Buttons - Ghost/Subtle Style */
@@ -276,11 +305,11 @@
     content: "";
     position: absolute;
     left: -24px;
-    top: 2px;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--rte-primary-color, #000);
-    border-radius: 3px;
+    top: 3px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--rte-primary-color);
+    border-radius: 4px;
     background-color: transparent;
     cursor: pointer;
     -webkit-user-select: none;
@@ -288,27 +317,32 @@
     user-select: none;
     z-index: 101;
     pointer-events: none;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
 }
 
 /* Checked state: show checkmark */
 .rte-editor li[role="checkbox"][aria-checked="true"]::before {
-    background-color: var(--rte-primary-color, #000);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M10 3L4.5 8.5L2 6' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-color: var(--rte-primary-color);
+    border-color: var(--rte-primary-color);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 12px 12px;
+    background-size: 10px 10px;
 }
 
 /* Checked state: strikethrough + reduced opacity */
 .rte-editor li[role="checkbox"][aria-checked="true"] {
-    opacity: 0.6;
+    opacity: 0.55;
     text-decoration: line-through;
+    text-decoration-color: var(--rte-text-secondary);
 }
 
 /* Focus state */
 .rte-editor li[role="checkbox"]:focus {
-    outline: 2px solid var(--rte-primary-color, #000);
+    outline: 2px solid var(--rte-primary-color);
     outline-offset: 2px;
+    border-radius: 2px;
 }
 
 /* RTL support */

@@ -1,6 +1,7 @@
 // Components
 export { Dropdown } from "./components/Dropdown";
 export { Editor } from "./components/Editor";
+export { FloatingToolbar } from "./components/FloatingToolbar";
 export { Toolbar } from "./components/Toolbar";
 
 // Plugins

@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCheckbox } from "../hooks/useCheckbox";
+import { useEditorEvents } from "../hooks/useEditorEvents";
+import { useEditorInit } from "../hooks/useEditorInit";
+import { useEditorSelection } from "../hooks/useEditorSelection";
 import { defaultPlugins } from "../plugins";
-import { buildPluginsFromSettings } from "../utils/settings";
 import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import {
     createBackgroundColorPlugin,
@@ -26,10 +29,8 @@ import {
 } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
-import { useCheckbox } from "../hooks/useCheckbox";
-import { useEditorEvents } from "../hooks/useEditorEvents";
-import { useEditorInit } from "../hooks/useEditorInit";
-import { useEditorSelection } from "../hooks/useEditorSelection";
+import { buildPluginsFromSettings } from "../utils/settings";
+import { FloatingToolbar } from "./FloatingToolbar";
 import { Toolbar } from "./Toolbar";
 
 export const Editor: React.FC<EditorProps> = ({
@@ -72,20 +73,20 @@ export const Editor: React.FC<EditorProps> = ({
 
         if (headings && headings.length > 0) {
             const blockFormatIndex = allPlugins.findIndex(
-                (p) => p.name === "blockFormat"
+                (p) => p.name === "blockFormat",
             );
             if (blockFormatIndex !== -1) {
                 allPlugins[blockFormatIndex] =
                     createBlockFormatPlugin(headings);
             } else {
                 const redoIndex = allPlugins.findIndex(
-                    (p) => p.name === "redo"
+                    (p) => p.name === "redo",
                 );
                 if (redoIndex !== -1) {
                     allPlugins.splice(
                         redoIndex + 1,
                         0,
-                        createBlockFormatPlugin(headings)
+                        createBlockFormatPlugin(headings),
                     );
                 } else {
                     allPlugins.push(createBlockFormatPlugin(headings));
@@ -95,13 +96,13 @@ export const Editor: React.FC<EditorProps> = ({
 
         if (fontSizes && fontSizes.length > 0) {
             const blockFormatIndex = allPlugins.findIndex(
-                (p) => p.name === "blockFormat"
+                (p) => p.name === "blockFormat",
             );
             if (blockFormatIndex !== -1) {
                 allPlugins.splice(
                     blockFormatIndex + 1,
                     0,
-                    createFontSizePlugin(fontSizes)
+                    createFontSizePlugin(fontSizes),
                 );
             } else {
                 allPlugins.push(createFontSizePlugin(fontSizes));
@@ -116,14 +117,22 @@ export const Editor: React.FC<EditorProps> = ({
         allPlugins.push(createImagePlugin(onImageUpload));
 
         return allPlugins;
-    }, [providedPlugins, fontSizes, colors, headings, onImageUpload, settings, settingsOptions]);
+    }, [
+        providedPlugins,
+        fontSizes,
+        colors,
+        headings,
+        onImageUpload,
+        settings,
+        settingsOptions,
+    ]);
 
     // --- Callbacks ---
     const notifyChange = useCallback(
         (content: EditorContent) => {
             if (onChange) onChange(content);
         },
-        [onChange]
+        [onChange],
     );
 
     const getDomContent = useCallback((): EditorContent => {
@@ -157,7 +166,7 @@ export const Editor: React.FC<EditorProps> = ({
                 content,
                 editor,
                 customLinkComponent,
-                customHeadingRenderer
+                customHeadingRenderer,
             );
             restoreSelection(editor);
             isUpdatingRef.current = false;
@@ -179,7 +188,7 @@ export const Editor: React.FC<EditorProps> = ({
                 content,
                 editor,
                 customLinkComponent,
-                customHeadingRenderer
+                customHeadingRenderer,
             );
             restoreSelection(editor);
             isUpdatingRef.current = false;
@@ -229,7 +238,7 @@ export const Editor: React.FC<EditorProps> = ({
                     value,
                     isUpdatingRef,
                     historyRef,
-                    notifyChange
+                    notifyChange,
                 );
             }
 
@@ -272,7 +281,7 @@ export const Editor: React.FC<EditorProps> = ({
                     content,
                     editor,
                     customLinkComponent,
-                    customHeadingRenderer
+                    customHeadingRenderer,
                 );
                 historyRef.current.push(content);
                 isUpdatingRef.current = false;
@@ -281,7 +290,7 @@ export const Editor: React.FC<EditorProps> = ({
 
             insertBlock: (
                 type: string,
-                attributes?: Record<string, string>
+                attributes?: Record<string, string>,
             ): void => {
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0) return;
@@ -305,7 +314,7 @@ export const Editor: React.FC<EditorProps> = ({
 
             insertInline: (
                 type: string,
-                attributes?: Record<string, string>
+                attributes?: Record<string, string>,
             ): void => {
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0) return;
@@ -345,7 +354,7 @@ export const Editor: React.FC<EditorProps> = ({
                         content,
                         editor,
                         customLinkComponent,
-                        customHeadingRenderer
+                        customHeadingRenderer,
                     );
                     historyRef.current.push(content);
                     isUpdatingRef.current = false;
@@ -368,7 +377,7 @@ export const Editor: React.FC<EditorProps> = ({
             },
             clearBackgroundColor: (): void => {
                 executeWithHistory((selection) =>
-                    clearBackgroundColor(selection)
+                    clearBackgroundColor(selection),
                 );
             },
             clearFontSize: (): void => {
@@ -387,7 +396,7 @@ export const Editor: React.FC<EditorProps> = ({
 
         /** Helper: push history, execute operation, then notify change. */
         function executeWithHistory(
-            operation: (selection: Selection) => void
+            operation: (selection: Selection) => void,
         ): void {
             const editor = editorRef.current;
             if (!editor) return;
@@ -475,9 +484,14 @@ export const Editor: React.FC<EditorProps> = ({
                 if (url.includes("|__aid__:")) {
                     const idx = url.indexOf("|__aid__:");
                     realUrl = url.substring(0, idx);
-                    const attachmentId = url.substring(idx + "|__aid__:".length);
+                    const attachmentId = url.substring(
+                        idx + "|__aid__:".length,
+                    );
                     if (attachmentId) {
-                        placeholder.setAttribute("data-attachment-id", attachmentId);
+                        placeholder.setAttribute(
+                            "data-attachment-id",
+                            attachmentId,
+                        );
                     }
                 }
 
@@ -491,12 +505,12 @@ export const Editor: React.FC<EditorProps> = ({
                 console.error("Image upload failed:", err);
                 // Remove failed placeholder
                 const failedImg = editor.querySelector(
-                    'img[data-uploading="true"]'
+                    'img[data-uploading="true"]',
                 );
                 failedImg?.remove();
             }
         },
-        [onImageUpload, notifyChange]
+        [onImageUpload, notifyChange],
     );
 
     // --- Paste handler ---
@@ -533,7 +547,7 @@ export const Editor: React.FC<EditorProps> = ({
                         pastedContent,
                         tempDiv,
                         customLinkComponent,
-                        customHeadingRenderer
+                        customHeadingRenderer,
                     );
 
                     const fragment = document.createDocumentFragment();
@@ -623,6 +637,11 @@ export const Editor: React.FC<EditorProps> = ({
                 }}
                 suppressContentEditableWarning
             />
+            <FloatingToolbar
+                plugins={plugins}
+                editorAPI={editorAPI}
+                editorElement={editorRef.current}
+            />
         </div>
     );
 };
@@ -633,7 +652,7 @@ function handleInsertImage(
     value: string,
     isUpdatingRef: React.MutableRefObject<boolean>,
     historyRef: React.MutableRefObject<HistoryManager>,
-    notifyChange: (content: EditorContent) => void
+    notifyChange: (content: EditorContent) => void,
 ): boolean {
     let selection = window.getSelection();
     if (!selection) return false;
@@ -736,7 +755,7 @@ function saveAndNotify(
     editor: HTMLElement,
     isUpdatingRef: React.MutableRefObject<boolean>,
     historyRef: React.MutableRefObject<HistoryManager>,
-    notifyChange: (content: EditorContent) => void
+    notifyChange: (content: EditorContent) => void,
 ): void {
     isUpdatingRef.current = true;
     setTimeout(() => {
@@ -765,14 +784,8 @@ function ensureEditorFocused(editor: HTMLElement): void {
         if (editor.childNodes.length > 0) {
             const lastChild = editor.childNodes[editor.childNodes.length - 1];
             if (lastChild.nodeType === Node.TEXT_NODE) {
-                range.setStart(
-                    lastChild,
-                    lastChild.textContent?.length || 0
-                );
-                range.setEnd(
-                    lastChild,
-                    lastChild.textContent?.length || 0
-                );
+                range.setStart(lastChild, lastChild.textContent?.length || 0);
+                range.setEnd(lastChild, lastChild.textContent?.length || 0);
             } else {
                 range.selectNodeContents(lastChild);
                 range.collapse(false);

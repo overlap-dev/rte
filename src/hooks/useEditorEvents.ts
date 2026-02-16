@@ -76,10 +76,6 @@ export function useEditorEvents({
                     return;
                 }
 
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0) return;
 
@@ -93,6 +89,10 @@ export function useEditorEvents({
                         : (container as HTMLElement).closest("li");
 
                 if (listItem && editor.contains(listItem)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
                     const currentContent = domToContent(editor);
                     historyRef.current.push(currentContent);
 
@@ -110,6 +110,7 @@ export function useEditorEvents({
                     }, 0);
                     return;
                 }
+                // Not in a list -- let Tab move focus out of the editor
             }
 
             // Cmd/Ctrl+K: trigger link button click (if present in toolbar)

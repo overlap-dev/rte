@@ -275,9 +275,9 @@ const s = {
         border: "1px solid #e5e7eb",
     } as React.CSSProperties,
     badgeBlue: {
-        background: "#eff6ff",
-        color: "#1d4ed8",
-        border: "1px solid #bfdbfe",
+        background: "#e6f5f5",
+        color: "#267273",
+        border: "1px solid #80c9ca",
     } as React.CSSProperties,
 
     /* Sections */
@@ -320,8 +320,8 @@ const s = {
         marginBottom: 12,
         fontSize: 18,
         fontWeight: 700,
-        color: "#3b82f6",
-        background: "#eff6ff",
+        color: "#339192",
+        background: "#e6f5f5",
     } as React.CSSProperties,
     featureName: {
         fontSize: 15,
@@ -402,8 +402,8 @@ const s = {
         transition: "color .15s, border-color .15s",
     } as React.CSSProperties,
     tabActive: {
-        color: "#3b82f6",
-        borderBottomColor: "#3b82f6",
+        color: "#339192",
+        borderBottomColor: "#339192",
         fontWeight: 600,
     } as React.CSSProperties,
     outputPre: {
@@ -455,7 +455,7 @@ const s = {
         alignItems: "center",
         gap: 8,
         padding: "10px 20px",
-        background: "#3b82f6",
+        background: "#339192",
         color: "#fff",
         border: "none",
         borderRadius: 8,
@@ -826,7 +826,7 @@ export default function App() {
                                         children: [
                                             {
                                                 type: "text",
-                                                text: "The default theme with blue accent.",
+                                                text: "The default theme with teal accent.",
                                             },
                                         ],
                                     },
@@ -978,8 +978,8 @@ export default function App() {
                         <div
                             style={{
                                 ...s.compHeader,
-                                background: "#eff6ff",
-                                color: "#1d4ed8",
+                                background: "#e6f5f5",
+                                color: "#267273",
                             }}
                         >
                             @overlap/rte
