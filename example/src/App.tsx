@@ -503,6 +503,11 @@ const features = [
     },
     { icon: "\u201C", name: "Blockquote", desc: "Styled quote blocks" },
     {
+        icon: "<>",
+        name: "Code Block",
+        desc: "Preformatted monospace code blocks",
+    },
+    {
         icon: "\uD83D\uDD17",
         name: "Links",
         desc: "Create and remove hyperlinks",

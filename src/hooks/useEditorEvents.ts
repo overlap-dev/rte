@@ -10,8 +10,8 @@ import { getActiveCell, navigateTableCell } from "../utils/table";
 
 interface UseEditorEventsOptions {
     editorRef: React.RefObject<HTMLDivElement | null>;
-    historyRef: React.MutableRefObject<HistoryManager>;
-    isUpdatingRef: React.MutableRefObject<boolean>;
+    historyRef: { current: HistoryManager };
+    isUpdatingRef: { current: boolean };
     notifyChange: (content: EditorContent) => void;
     handleCheckboxKeyDown: (e: KeyboardEvent) => boolean;
     handleCheckboxEnter: (e: KeyboardEvent) => boolean;

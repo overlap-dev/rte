@@ -34,7 +34,7 @@ export function createBlockFormatPlugin(
     const showBulletList = blockOptions.bulletList ?? true;
     const showNumberedList = blockOptions.numberedList ?? true;
     const showQuote = blockOptions.quote ?? true;
-    const showCodeBlock = blockOptions.codeBlock ?? false;
+    const showCodeBlock = blockOptions.codeBlock ?? true;
     const showCheck = blockOptions.check ?? true;
 
     const options: { value: string; label: string; headingPreview?: string; icon?: string }[] = [
@@ -99,6 +99,7 @@ export function createBlockFormatPlugin(
         const tagName = element.tagName.toLowerCase();
 
         if (headings.includes(tagName)) return tagName;
+        if (element.closest("pre")) return "code";
         if (element.closest("blockquote")) return "blockquote";
         if (findClosestCheckboxList(element)) return "checkbox-list";
         if (element.closest("ul")) return "ul";
@@ -139,54 +140,103 @@ export function createBlockFormatPlugin(
         execute: (editor: EditorAPI, value?: string) => {
             if (!value) return;
 
-            if (value === "checkbox-list") {
-                const selection = editor.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0);
-                    const container = range.commonAncestorContainer;
-                    const element =
-                        container.nodeType === Node.TEXT_NODE
-                            ? container.parentElement
-                            : (container as HTMLElement);
+            // Helper: get the element at the cursor
+            const getCursorElement = (): HTMLElement | null => {
+                const sel = editor.getSelection();
+                if (!sel || sel.rangeCount === 0) return null;
+                const range = sel.getRangeAt(0);
+                const container = range.commonAncestorContainer;
+                return container.nodeType === Node.TEXT_NODE
+                    ? container.parentElement
+                    : (container as HTMLElement);
+            };
 
-                    if (!element) return;
-
-                    const checkboxList = findClosestCheckboxList(element);
-                    if (checkboxList) {
-                        // Remove checkbox list: convert to normal list
-                        checkboxList.classList.remove("rte-checkbox-list");
-                        checkboxList
-                            .querySelectorAll("li[role='checkbox']")
-                            .forEach((li) => {
-                                li.removeAttribute("role");
-                                li.removeAttribute("tabIndex");
-                                li.removeAttribute("aria-checked");
-                            });
-                    } else {
-                        editor.executeCommand("insertCheckboxList");
+            // Helper: merge all adjacent <pre> elements in the editor into one
+            const mergeAdjacentPre = () => {
+                // document.activeElement is the contenteditable after ensureEditorFocused
+                const root = document.activeElement;
+                if (!root || !root.getAttribute("contenteditable")) return;
+                const children = Array.from(root.children);
+                for (let i = 0; i < children.length; i++) {
+                    const child = children[i];
+                    if (child.tagName !== "PRE" || !child.parentElement)
+                        continue;
+                    while (child.nextElementSibling?.tagName === "PRE") {
+                        const next = child.nextElementSibling;
+                        child.appendChild(document.createTextNode("\n"));
+                        while (next.firstChild) {
+                            child.appendChild(next.firstChild);
+                        }
+                        next.remove();
                     }
+                }
+            };
+
+            // Helper: if cursor is inside a list, remove the list first
+            const escapeListIfNeeded = () => {
+                const el = getCursorElement();
+                if (!el) return;
+                const inCheckbox = findClosestCheckboxList(el);
+                const inUl = el.closest("ul");
+                const inOl = el.closest("ol");
+                if (inCheckbox) {
+                    inCheckbox.classList.remove("rte-checkbox-list");
+                    inCheckbox
+                        .querySelectorAll("li[role='checkbox']")
+                        .forEach((li) => {
+                            li.removeAttribute("role");
+                            li.removeAttribute("tabIndex");
+                            li.removeAttribute("aria-checked");
+                        });
+                    editor.executeCommand("insertUnorderedList");
+                } else if (inUl) {
+                    editor.executeCommand("insertUnorderedList");
+                } else if (inOl) {
+                    editor.executeCommand("insertOrderedList");
+                }
+            };
+
+            if (value === "checkbox-list") {
+                const el = getCursorElement();
+                if (!el) return;
+
+                const checkboxList = findClosestCheckboxList(el);
+                if (checkboxList) {
+                    checkboxList.classList.remove("rte-checkbox-list");
+                    checkboxList
+                        .querySelectorAll("li[role='checkbox']")
+                        .forEach((li) => {
+                            li.removeAttribute("role");
+                            li.removeAttribute("tabIndex");
+                            li.removeAttribute("aria-checked");
+                        });
+                } else {
+                    editor.executeCommand("insertCheckboxList");
                 }
             } else if (value === "ul") {
                 editor.executeCommand("insertUnorderedList");
             } else if (value === "ol") {
                 editor.executeCommand("insertOrderedList");
             } else if (value === "blockquote") {
-                const selection = editor.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0);
-                    const container = range.commonAncestorContainer;
-                    const element =
-                        container.nodeType === Node.TEXT_NODE
-                            ? container.parentElement
-                            : (container as HTMLElement);
-
-                    if (element?.closest("blockquote")) {
-                        editor.executeCommand("formatBlock", "<p>");
-                    } else {
-                        editor.executeCommand("formatBlock", "<blockquote>");
-                    }
+                const el = getCursorElement();
+                if (el?.closest("blockquote")) {
+                    editor.executeCommand("formatBlock", "<p>");
+                } else {
+                    escapeListIfNeeded();
+                    editor.executeCommand("formatBlock", "<blockquote>");
+                }
+            } else if (value === "code") {
+                const el = getCursorElement();
+                if (el?.closest("pre")) {
+                    editor.executeCommand("formatBlock", "<p>");
+                } else {
+                    escapeListIfNeeded();
+                    editor.executeCommand("formatBlock", "<pre>");
+                    mergeAdjacentPre();
                 }
             } else {
+                // Headings and "Normal" (p)
+                escapeListIfNeeded();
                 editor.executeCommand("formatBlock", `<${value}>`);
             }
         },
@@ -206,6 +256,7 @@ export function createBlockFormatPlugin(
             const tagName = element.tagName.toLowerCase();
             return (
                 headings.includes(tagName) ||
+                element.closest("pre") !== null ||
                 element.closest("blockquote") !== null ||
                 findClosestCheckboxList(element) !== null ||
                 element.closest("ul") !== null ||

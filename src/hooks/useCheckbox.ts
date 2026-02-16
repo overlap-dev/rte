@@ -18,7 +18,7 @@ import {
 
 interface UseCheckboxOptions {
     editorRef: React.RefObject<HTMLDivElement | null>;
-    isUpdatingRef: React.MutableRefObject<boolean>;
+    isUpdatingRef: { current: boolean };
     pushToHistory: (content: EditorContent) => void;
     notifyChange: (content: EditorContent) => void;
     getDomContent: () => EditorContent;
@@ -221,6 +221,52 @@ export function useCheckbox({
 
             e.preventDefault();
 
+            const editor = editorRef.current;
+
+            // If the current item is empty, break out of the list
+            const itemText = (listItem.textContent || "").trim();
+            if (itemText === "" || itemText === "\u200B") {
+                // Remove the empty list item
+                checkboxList.removeChild(listItem);
+
+                // If the list is now empty, remove it entirely
+                if (checkboxList.children.length === 0) {
+                    const p = document.createElement("p");
+                    const br = document.createElement("br");
+                    p.appendChild(br);
+                    checkboxList.parentNode?.replaceChild(p, checkboxList);
+
+                    const newRange = document.createRange();
+                    newRange.setStart(p, 0);
+                    newRange.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                } else {
+                    // Insert a <p> after the list and place cursor there
+                    const p = document.createElement("p");
+                    const br = document.createElement("br");
+                    p.appendChild(br);
+                    checkboxList.parentNode?.insertBefore(
+                        p,
+                        checkboxList.nextSibling,
+                    );
+
+                    const newRange = document.createRange();
+                    newRange.setStart(p, 0);
+                    newRange.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                }
+
+                if (editor) {
+                    const content = getDomContent();
+                    pushToHistory(content);
+                    notifyChange(content);
+                }
+                return true;
+            }
+
+            // Normal case: create a new checkbox item
             const newLi = document.createElement("li");
             updateListItemChecked(newLi, false);
             const textNode = document.createTextNode(" ");
@@ -232,7 +278,6 @@ export function useCheckbox({
                 checkboxList.appendChild(newLi);
             }
 
-            const editor = editorRef.current;
             if (editor) ensureAllCheckboxes(editor);
 
             const newRange = document.createRange();
@@ -249,7 +294,7 @@ export function useCheckbox({
 
             return true;
         },
-        [editorRef, getDomContent, pushToHistory, notifyChange]
+        [editorRef, getDomContent, pushToHistory, notifyChange],
     );
 
     /**

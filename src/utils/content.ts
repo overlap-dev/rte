@@ -364,7 +364,7 @@ export function contentToDOM(
     customHeadingRenderer?: (
         level: string,
         children: React.ReactNode
-    ) => React.ReactElement
+    ) => React.ReactNode
 ): void {
     container.innerHTML = "";
 

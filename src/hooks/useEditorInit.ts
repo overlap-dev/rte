@@ -7,8 +7,8 @@ import { HistoryManager } from "../utils/history";
 
 interface UseEditorInitOptions {
     editorRef: React.RefObject<HTMLDivElement | null>;
-    historyRef: React.MutableRefObject<HistoryManager>;
-    isUpdatingRef: React.MutableRefObject<boolean>;
+    historyRef: { current: HistoryManager };
+    isUpdatingRef: { current: boolean };
     initialContent?: EditorContent;
     notifyChange: (content: EditorContent) => void;
     customLinkComponent?: React.ComponentType<{
@@ -19,7 +19,7 @@ interface UseEditorInitOptions {
     customHeadingRenderer?: (
         level: string,
         children: React.ReactNode
-    ) => React.ReactElement;
+    ) => React.ReactNode;
 }
 
 /**

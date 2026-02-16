@@ -13,7 +13,7 @@ export interface Plugin {
   name: string;
   type: 'inline' | 'block' | 'command';
   command?: string;
-  renderButton?: (props: ButtonProps & { [key: string]: unknown }) => React.ReactElement;
+  renderButton?: (props: ButtonProps & { [key: string]: unknown }) => React.ReactNode;
   execute?: (editor: EditorAPI, value?: string) => void;
   isActive?: (editor: EditorAPI) => boolean;
   canExecute?: (editor: EditorAPI) => boolean;
@@ -55,8 +55,8 @@ export interface EditorAPI {
 }
 
 export interface CustomRenderer {
-  renderNode?: (node: EditorNode, children: React.ReactNode) => React.ReactElement | null;
-  renderMark?: (mark: string, attributes: Record<string, string>, children: React.ReactNode) => React.ReactElement | null;
+  renderNode?: (node: EditorNode, children: React.ReactNode) => React.ReactNode;
+  renderMark?: (mark: string, attributes: Record<string, string>, children: React.ReactNode) => React.ReactNode;
 }
 
 export interface EditorProps {
@@ -75,7 +75,7 @@ export interface EditorProps {
   colors?: string[];
   // Headings System
   headings?: string[];
-  customHeadingRenderer?: (level: string, children: React.ReactNode) => React.ReactElement;
+  customHeadingRenderer?: (level: string, children: React.ReactNode) => React.ReactNode;
   // Custom Renderer
   customRenderer?: CustomRenderer;
   // Editor API Callback

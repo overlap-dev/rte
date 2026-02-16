@@ -645,8 +645,8 @@ export const Editor: React.FC<EditorProps> = ({
 function handleInsertImage(
     editor: HTMLElement,
     value: string,
-    isUpdatingRef: React.MutableRefObject<boolean>,
-    historyRef: React.MutableRefObject<HistoryManager>,
+    isUpdatingRef: { current: boolean },
+    historyRef: { current: HistoryManager },
     notifyChange: (content: EditorContent) => void,
 ): boolean {
     let selection = window.getSelection();
@@ -748,8 +748,8 @@ function createImageElement(src: string): HTMLImageElement {
 
 function saveAndNotify(
     editor: HTMLElement,
-    isUpdatingRef: React.MutableRefObject<boolean>,
-    historyRef: React.MutableRefObject<HistoryManager>,
+    isUpdatingRef: { current: boolean },
+    historyRef: { current: HistoryManager },
     notifyChange: (content: EditorContent) => void,
 ): void {
     isUpdatingRef.current = true;
