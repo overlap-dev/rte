@@ -11,6 +11,7 @@ import {
     redoPlugin,
     indentListItemPlugin,
     outdentListItemPlugin,
+    horizontalRulePlugin,
 } from "../plugins";
 import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import { clearFormattingPlugin } from "../plugins/clearFormatting";
@@ -38,6 +39,7 @@ export interface EditorSettings {
         numberedList?: boolean;
         quote?: boolean;
         codeBlock?: boolean;
+        horizontalRule?: boolean;
         check?: boolean;
         /** Heading levels to enable, e.g. ["h1", "h2", "h3"] */
         typography?: string[];
@@ -74,6 +76,7 @@ export const defaultEditorSettings: EditorSettings = {
         numberedList: true,
         quote: true,
         codeBlock: true,
+        horizontalRule: true,
         check: true,
         typography: ["h1", "h2", "h3", "h4", "h5", "h6"],
         colors: [
@@ -173,6 +176,9 @@ export function buildPluginsFromSettings(
     if (fmt.code) plugins.push(codeInlinePlugin);
     if (fmt.subscript) plugins.push(subscriptPlugin);
     if (fmt.superscript) plugins.push(superscriptPlugin);
+
+    // Horizontal rule
+    if (fmt.horizontalRule) plugins.push(horizontalRulePlugin);
 
     // Table
     if (settings.table?.enabled) {
