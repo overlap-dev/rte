@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [react()],
+    base: "/rte/",
     resolve: {
         alias: {
             "hendriks-rte": path.resolve(__dirname, "../src"),

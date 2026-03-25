@@ -438,34 +438,6 @@ const s = {
         color: "#334155",
     } as React.CSSProperties,
 
-    /* Comparison */
-    compGrid: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 24,
-        marginTop: 24,
-    } as React.CSSProperties,
-    compCard: {
-        borderRadius: 12,
-        border: "1px solid #e5e7eb",
-        overflow: "hidden",
-    } as React.CSSProperties,
-    compHeader: {
-        padding: "16px 20px",
-        fontWeight: 700,
-        fontSize: 18,
-        borderBottom: "1px solid #e5e7eb",
-    } as React.CSSProperties,
-    compRow: {
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "12px 20px",
-        fontSize: 14,
-        borderBottom: "1px solid #f3f4f6",
-    } as React.CSSProperties,
-    compLabel: { color: "#6b7280" } as React.CSSProperties,
-    compValue: { fontWeight: 600, color: "#111827" } as React.CSSProperties,
-
     /* Buttons */
     btnPrimary: {
         display: "inline-flex",
@@ -1169,72 +1141,6 @@ export default function App() {
                             <kbd style={s.kbd}>Arrow</kbd> key navigation between buttons
                             for improved accessibility.
                         </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══════════════════ COMPARISON ═══════════════════ */}
-            <section style={s.section}>
-                <h2 style={s.sectionTitle}>Why @overlap/rte?</h2>
-                <p style={s.sectionDesc}>A quick comparison with Lexical.</p>
-                <div style={s.compGrid}>
-                    <div style={s.compCard}>
-                        <div style={{ ...s.compHeader, background: "#e6f5f5", color: "#267273" }}>
-                            @overlap/rte
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Runtime dependencies</span>
-                            <span style={{ ...s.compValue, color: "#16a34a" }}>1</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Keyboard shortcuts</span>
-                            <span style={{ ...s.compValue, color: "#16a34a" }}>14+</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Markdown shortcuts</span>
-                            <span style={{ ...s.compValue, color: "#16a34a" }}>9 patterns</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Plugin complexity</span>
-                            <span style={s.compValue}>1 object</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Learning curve</span>
-                            <span style={{ ...s.compValue, color: "#16a34a" }}>1 day</span>
-                        </div>
-                        <div style={{ ...s.compRow, borderBottom: "none" }}>
-                            <span style={s.compLabel}>Vendor lock-in</span>
-                            <span style={{ ...s.compValue, color: "#16a34a" }}>None</span>
-                        </div>
-                    </div>
-                    <div style={s.compCard}>
-                        <div style={{ ...s.compHeader, background: "#f9fafb", color: "#6b7280" }}>
-                            Lexical
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Runtime dependencies</span>
-                            <span style={{ ...s.compValue, color: "#dc2626" }}>20+</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Keyboard shortcuts</span>
-                            <span style={s.compValue}>Custom setup required</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Markdown shortcuts</span>
-                            <span style={s.compValue}>Plugin required</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Plugin complexity</span>
-                            <span style={s.compValue}>Nodes + Commands + Transforms</span>
-                        </div>
-                        <div style={s.compRow}>
-                            <span style={s.compLabel}>Learning curve</span>
-                            <span style={{ ...s.compValue, color: "#dc2626" }}>1-2 weeks</span>
-                        </div>
-                        <div style={{ ...s.compRow, borderBottom: "none" }}>
-                            <span style={s.compLabel}>Vendor lock-in</span>
-                            <span style={{ ...s.compValue, color: "#dc2626" }}>Meta ecosystem</span>
-                        </div>
                     </div>
                 </div>
             </section>
