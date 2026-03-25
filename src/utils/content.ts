@@ -97,6 +97,10 @@ export function domToContent(element: HTMLElement): EditorContent {
             return { type: "br" };
         }
 
+        if (tagName === "hr") {
+            return { type: "hr" };
+        }
+
         if (tagName === "img") {
             const attributes: Record<string, string> = {};
             const src = el.getAttribute("src");
@@ -168,6 +172,7 @@ export function domToContent(element: HTMLElement): EditorContent {
                 "h5",
                 "h6",
                 "blockquote",
+                "pre",
                 "ul",
                 "ol",
                 "li",
