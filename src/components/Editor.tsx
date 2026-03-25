@@ -698,9 +698,17 @@ export const Editor: React.FC<EditorProps> = ({
                   ({
                       "--rte-button-hover-bg": theme.buttonHoverBg,
                   } as React.CSSProperties)),
+              ...(theme.buttonActiveBg &&
+                  ({
+                      "--rte-button-active-bg": theme.buttonActiveBg,
+                  } as React.CSSProperties)),
               ...(theme.contentBg &&
                   ({
                       "--rte-content-bg": theme.contentBg,
+                  } as React.CSSProperties)),
+              ...(theme.textColor &&
+                  ({
+                      "--rte-text-color": theme.textColor,
                   } as React.CSSProperties)),
               ...(theme.primaryColor &&
                   ({

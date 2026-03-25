@@ -245,6 +245,54 @@ const demoSettings: EditorSettings = {
    ========================================================================== */
 
 const s = {
+    /* Navigation bar */
+    navBar: {
+        position: "sticky" as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        width: "100%",
+        backgroundColor: "#ffffff",
+        boxShadow: "0px 3px 4px 0px #00000026",
+    } as React.CSSProperties,
+    navBarInner: {
+        display: "flex",
+        flexDirection: "row" as const,
+        justifyContent: "space-between",
+        alignItems: "center",
+        maxWidth: 1440,
+        height: 80,
+        margin: "0 auto",
+        padding: "0 24px",
+    } as React.CSSProperties,
+    navLogo: {
+        display: "block",
+        height: 40,
+        width: "auto",
+    } as React.CSSProperties,
+    navTitle: {
+        fontSize: 15,
+        fontWeight: 700,
+        letterSpacing: 1,
+        color: "#111827",
+        textDecoration: "none",
+    } as React.CSSProperties,
+    navRight: {
+        display: "flex",
+        flexDirection: "row" as const,
+        alignItems: "center",
+        gap: 32,
+    } as React.CSSProperties,
+    navLink: {
+        fontSize: 15,
+        fontWeight: 700,
+        letterSpacing: 1,
+        color: "#111827",
+        textDecoration: "none",
+        transition: "color .15s",
+    } as React.CSSProperties,
+
     page: {
         maxWidth: 1120,
         margin: "0 auto",
@@ -661,7 +709,44 @@ export default function App() {
     /* ── Render ────────────────────────────────────────────────────────── */
 
     return (
-        <div style={s.page}>
+        <>
+            {/* ═══════════════════ NAV BAR ═══════════════════ */}
+            <nav style={s.navBar}>
+                <div style={s.navBarInner}>
+                    <a href="https://www.overlap.at/" target="_blank" rel="noopener noreferrer">
+                        <img
+                            src={`${import.meta.env.BASE_URL}retina-logo-color.png`}
+                            alt="Overlap"
+                            style={s.navLogo}
+                        />
+                    </a>
+                    <span style={s.navTitle}>@overlap/rte</span>
+                    <div style={s.navRight}>
+                        <a
+                            href="https://github.com/overlap-dev/rte"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={s.navLink}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#339192"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#111827"; }}
+                        >
+                            GitHub
+                        </a>
+                        <a
+                            href="https://www.overlap.at/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={s.navLink}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#339192"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#111827"; }}
+                        >
+                            overlap.at
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div style={s.page}>
             {/* ═══════════════════ HERO ═══════════════════ */}
             <header style={s.hero}>
                 <h1 style={s.heroTitle}>@overlap/rte</h1>
@@ -1017,8 +1102,10 @@ export default function App() {
                                 borderColor: "#334155",
                                 toolbarBg: "#1e293b",
                                 contentBg: "#0f172a",
+                                textColor: "#e2e8f0",
                                 primaryColor: "#60a5fa",
                                 buttonHoverBg: "#334155",
+                                buttonActiveBg: "#475569",
                             }}
                             editorClassName="showcase-theme-editor"
                         />
@@ -1172,5 +1259,6 @@ export default function App() {
                 </p>
             </footer>
         </div>
+        </>
     );
 }

@@ -88,7 +88,9 @@ export interface EditorProps {
     borderRadius?: number;
     toolbarBg?: string;
     buttonHoverBg?: string;
+    buttonActiveBg?: string;
     contentBg?: string;
+    textColor?: string;
     primaryColor?: string;
   };
   // Image Upload
