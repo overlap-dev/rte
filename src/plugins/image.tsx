@@ -41,9 +41,9 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
           return;
         }
 
-        // Validate URL safety
+        // Validate URL safety (allow data:image/* for base64-encoded uploads)
         const srcWithoutMeta = src.split('|__aid__:')[0];
-        if (!isUrlSafe(srcWithoutMeta)) {
+        if (!isUrlSafe(srcWithoutMeta) && !srcWithoutMeta.startsWith('data:image/')) {
           alert('Invalid image URL');
           return;
         }
@@ -156,11 +156,10 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                     <label>
                       Image URL
                       <input
-                        type="url"
+                        type="text"
                         value={imageUrl}
                         onChange={(e) => {
                           setImageUrl(e.target.value);
-                          // Clear raw URL when user manually edits
                           setRawUrl('');
                         }}
                         placeholder="https://example.com/image.jpg"
