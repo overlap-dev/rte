@@ -2,6 +2,8 @@
 
 A lightweight, extensible Rich Text Editor for React -- zero extra dependencies beyond React itself.
 
+**[Live Demo](https://overlap-dev.github.io/rte/)**
+
 ## Installation
 
 ```bash
