@@ -39,8 +39,10 @@ export function indentListItem(selection: Selection): boolean {
     let nestedList = previousItem.querySelector('ul, ol');
     
     if (!nestedList) {
-      // Create new nested list
       nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
+      if (list.classList.contains('rte-checkbox-list')) {
+        (nestedList as HTMLElement).classList.add('rte-checkbox-list');
+      }
       previousItem.appendChild(nestedList);
     }
     
@@ -68,6 +70,9 @@ export function indentListItem(selection: Selection): boolean {
   } else {
     // No previous item — create new nested list in current item
     const nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
+    if (list.classList.contains('rte-checkbox-list')) {
+      nestedList.classList.add('rte-checkbox-list');
+    }
     
     // Move all following items into the nested list
     let nextSibling = listItem.nextElementSibling;

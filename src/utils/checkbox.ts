@@ -56,6 +56,13 @@ export function ensureAllCheckboxes(editor: HTMLElement): void {
             ul.classList.add("rte-checkbox-list");
         }
 
+        // Propagate checkbox class to nested ULs inside LI children
+        ul.querySelectorAll(":scope > li > ul").forEach((nestedUl) => {
+            if (!nestedUl.classList.contains("rte-checkbox-list")) {
+                nestedUl.classList.add("rte-checkbox-list");
+            }
+        });
+
         // Handle GitHub format: convert <input type="checkbox"> to aria-checked
         ul.querySelectorAll(":scope > li").forEach((li) => {
             const input = li.querySelector(

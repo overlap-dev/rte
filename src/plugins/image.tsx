@@ -105,6 +105,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
           {showModal && (
             <div
               className="rte-image-modal-overlay"
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                   setShowModal(false);
