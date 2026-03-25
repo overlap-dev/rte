@@ -154,8 +154,27 @@ export function handleMarkdownShortcut(
 /** Remove the trigger characters from the text node before applying formatting. */
 function clearBlockText(textNode: Text, charCount: number): void {
     const text = textNode.textContent || "";
-    textNode.textContent = text.substring(charCount);
-    // Reset cursor to start
+    const remaining = text.substring(charCount);
+    textNode.textContent = remaining;
+
+    if (remaining === "") {
+        const parent = textNode.parentElement;
+        if (parent) {
+            parent.removeChild(textNode);
+            const br = document.createElement("br");
+            parent.appendChild(br);
+            const selection = window.getSelection();
+            if (selection) {
+                const range = document.createRange();
+                range.setStart(parent, 0);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+            return;
+        }
+    }
+
     const selection = window.getSelection();
     if (selection) {
         const range = document.createRange();
