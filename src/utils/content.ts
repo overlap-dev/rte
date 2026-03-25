@@ -93,9 +93,8 @@ export function domToContent(element: HTMLElement): EditorContent {
             return null;
         }
 
-        // Handle <br> as empty text
         if (tagName === "br") {
-            return null;
+            return { type: "br" };
         }
 
         if (tagName === "img") {
