@@ -1,5 +1,4 @@
 import { useCallback, useEffect } from "react";
-import { CHECKBOX_CLICK_ZONE_PX } from "../constants";
 import { EditorContent } from "../types";
 import {
     ensureAllCheckboxes,
@@ -60,8 +59,8 @@ export function useCheckbox({
             const clientX = (event as MouseEvent).clientX;
             const isInCheckboxArea =
                 listItem.dir === "rtl"
-                    ? clientX >= rect.right - CHECKBOX_CLICK_ZONE_PX
-                    : clientX <= rect.left + CHECKBOX_CLICK_ZONE_PX;
+                    ? clientX >= rect.right
+                    : clientX <= rect.left;
 
             if (isInCheckboxArea) {
                 event.preventDefault();
@@ -91,8 +90,8 @@ export function useCheckbox({
             const clientX = event.clientX;
             const isInCheckboxArea =
                 listItem.dir === "rtl"
-                    ? clientX >= rect.right - CHECKBOX_CLICK_ZONE_PX
-                    : clientX <= rect.left + CHECKBOX_CLICK_ZONE_PX;
+                    ? clientX >= rect.right
+                    : clientX <= rect.left;
 
             if (isInCheckboxArea) {
                 event.preventDefault();

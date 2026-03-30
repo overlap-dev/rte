@@ -293,10 +293,10 @@
 .rte-editor li[role="checkbox"]::after {
     content: "";
     position: absolute;
-    left: -40px;
+    left: -28px;
     top: 0;
-    width: 40px;
-    height: 100%;
+    width: 24px;
+    height: 22px;
     cursor: pointer;
     z-index: 100;
     pointer-events: auto;
@@ -356,7 +356,7 @@
 
 .rte-editor li[dir="rtl"][role="checkbox"]::after {
     left: auto;
-    right: -40px;
+    right: -28px;
 }
 
 /* Strikethrough support (Lexical uses <s> tag) */
