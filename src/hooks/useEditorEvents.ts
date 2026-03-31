@@ -71,6 +71,92 @@ export function useEditorEvents({
                 return;
             }
 
+            // Exit code block: Enter on empty last line escapes <pre>
+            if (
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !isModifierPressed
+            ) {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+                    const range = sel.getRangeAt(0);
+                    const node = range.startContainer;
+                    const pre = (
+                        node instanceof HTMLElement
+                            ? node
+                            : node.parentElement
+                    )?.closest("pre");
+
+                    if (pre && pre.lastChild) {
+                        const lastChild = pre.lastChild;
+
+                        const cursorInPre =
+                            node === pre &&
+                            range.startOffset === pre.childNodes.length;
+                        const cursorAtEndOfLastText =
+                            node.nodeType === Node.TEXT_NODE &&
+                            node === lastChild &&
+                            range.startOffset ===
+                                (node.textContent?.length ?? 0);
+                        const isAtEnd =
+                            cursorInPre || cursorAtEndOfLastText;
+
+                        const lastIsBr =
+                            lastChild instanceof HTMLElement &&
+                            lastChild.tagName === "BR";
+                        const endsWithNewline =
+                            node.nodeType === Node.TEXT_NODE &&
+                            (node.textContent || "").endsWith("\n");
+
+                        if (isAtEnd && (lastIsBr || endsWithNewline)) {
+                            e.preventDefault();
+
+                            if (lastIsBr) {
+                                pre.removeChild(lastChild);
+                            } else if (
+                                node.nodeType === Node.TEXT_NODE &&
+                                node.textContent
+                            ) {
+                                node.textContent =
+                                    node.textContent.replace(/\n$/, "");
+                            }
+
+                            if (
+                                !pre.textContent &&
+                                !pre.querySelector("br")
+                            ) {
+                                pre.appendChild(
+                                    document.createElement("br")
+                                );
+                            }
+
+                            const p = document.createElement("p");
+                            p.appendChild(document.createElement("br"));
+                            pre.parentNode?.insertBefore(
+                                p,
+                                pre.nextSibling
+                            );
+
+                            const newRange = document.createRange();
+                            newRange.setStart(p, 0);
+                            newRange.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(newRange);
+
+                            const content = domToContent(editor);
+                            const serializedSel =
+                                serializeSelection(editor);
+                            historyRef.current.push(
+                                content,
+                                serializedSel
+                            );
+                            notifyChange(content);
+                            return;
+                        }
+                    }
+                }
+            }
+
             // Auto-link: convert URLs to <a> tags on space/enter
             if (!isModifierPressed && (e.key === " " || e.key === "Enter")) {
                 handleAutoLink(editor, e);

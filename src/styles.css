@@ -78,9 +78,16 @@
 .rte-toolbar-left {
     display: flex;
     gap: var(--rte-padding-xs);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     align-items: center;
     flex: 1;
+}
+
+.rte-toolbar-left::-webkit-scrollbar {
+    display: none;
 }
 
 .rte-toolbar-right {
@@ -99,9 +106,9 @@
     flex-shrink: 0;
 }
 
-/* Floating Toolbar (appears on text selection) */
+/* Floating Toolbar (appears on text selection, rendered via portal) */
 .rte-floating-toolbar {
-    z-index: 1001;
+    z-index: 10000;
     background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: 8px;
@@ -111,6 +118,8 @@
     padding: var(--rte-padding-xs);
     animation: rte-float-in 0.12s ease-out;
     pointer-events: auto;
+    max-width: calc(100vw - 16px);
+    overflow: hidden;
 }
 
 @keyframes rte-float-in {
@@ -128,6 +137,8 @@
     display: flex;
     align-items: center;
     gap: 2px;
+    min-width: 0;
+    max-width: 100%;
 }
 
 /* Toolbar Buttons - Ghost/Subtle Style */
@@ -425,21 +436,17 @@
     color: var(--rte-text-color);
 }
 
-/* Dropdown Menu - Modern Popover */
+/* Dropdown Menu - Modern Popover (rendered via portal into document.body) */
 .rte-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
     background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: var(--rte-border-radius);
     box-shadow: var(--rte-shadow-popover);
-    z-index: 1000;
+    z-index: 10000;
     min-width: 180px;
     max-height: 320px;
     overflow-y: auto;
     padding: var(--rte-padding-sm);
-    margin-top: var(--rte-padding-xs);
 }
 
 .rte-dropdown-item {
@@ -800,12 +807,9 @@
     outline-offset: -2px;
 }
 
-/* Table Insert Dialog */
+/* Table Insert Dialog (rendered via portal into document.body) */
 .rte-table-insert-dialog {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1000;
+    z-index: 10000;
     background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: 8px;

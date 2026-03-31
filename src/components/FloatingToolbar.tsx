@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
 
 interface FloatingToolbarProps {
@@ -72,8 +73,8 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
 
         // Center horizontally on the selection, clamp to viewport
         let left = rect.left + rect.width / 2 - toolbarW / 2;
-        if (left < pad) left = pad;
         if (left + toolbarW > vw - pad) left = vw - toolbarW - pad;
+        if (left < pad) left = pad;
 
         setPos({ top, left, visible: true });
     }, [editorElement]);
@@ -126,7 +127,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
 
     const isHidden = !pos.visible || leftPlugins.length === 0;
 
-    return (
+    return createPortal(
         <div
             ref={toolbarRef}
             className="rte-floating-toolbar"
@@ -138,7 +139,6 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
                 opacity: isHidden ? 0 : 1,
                 pointerEvents: isHidden ? "none" : "auto",
             }}
-            // Prevent selection loss when clicking toolbar buttons
             onMouseDown={(e) => e.preventDefault()}
         >
             <div className="rte-floating-toolbar-content">
@@ -195,7 +195,8 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -10,7 +10,7 @@ const ALLOWED_CONTENT_TAGS = new Set([
     "ul", "ol", "li", "a", "strong", "em", "u", "s", "del",
     "sub", "sup", "code", "pre", "blockquote", "br", "hr",
     "img", "table", "thead", "tbody", "tr", "th", "td",
-    "b", "i", "strike",
+    "b", "i", "strike", "font",
 ]);
 
 /** Checks if an attribute key is safe to set on a DOM element. */
@@ -250,6 +250,7 @@ export function domToContent(element: HTMLElement): EditorContent {
                 "sub",
                 "sup",
                 "code",
+                "font",
             ].includes(tagName)
         ) {
             const children: EditorNode[] = [];
@@ -339,6 +340,48 @@ export function domToContent(element: HTMLElement): EditorContent {
                         }
                     });
                 }
+            }
+
+            // <font> from execCommand('foreColor') or pasted HTML
+            if (tagName === "font") {
+                const fontAttrs: Record<string, string> = {};
+
+                const colorAttr = el.getAttribute("color");
+                if (colorAttr) fontAttrs.color = colorAttr;
+
+                const sizeAttr = el.getAttribute("size");
+                if (sizeAttr) {
+                    const sizeMap: Record<string, string> = {
+                        "1": "10px", "2": "13px", "3": "16px", "4": "18px",
+                        "5": "24px", "6": "32px", "7": "48px",
+                    };
+                    const mapped = sizeMap[sizeAttr];
+                    if (mapped) fontAttrs.fontSize = mapped;
+                }
+
+                const style = el.getAttribute("style") || "";
+                if (style) {
+                    style.split(";").forEach((rule) => {
+                        const [key, value] = rule
+                            .split(":")
+                            .map((s) => s.trim());
+                        if (key && value) {
+                            if (key === "font-size") fontAttrs.fontSize = value;
+                            else if (key === "color") fontAttrs.color = value;
+                            else if (key === "background-color")
+                                fontAttrs.backgroundColor = value;
+                        }
+                    });
+                }
+
+                return {
+                    type: "span",
+                    children: children.length > 0 ? children : undefined,
+                    attributes:
+                        Object.keys(fontAttrs).length > 0
+                            ? fontAttrs
+                            : undefined,
+                };
             }
 
             // Map tag names to semantic types

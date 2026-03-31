@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { IconWrapper } from "../components/IconWrapper";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
 import {
@@ -19,11 +20,13 @@ import {
 interface InsertDialogProps {
     onInsert: (rows: number, cols: number) => void;
     onClose: () => void;
+    anchorRect: DOMRect | null;
 }
 
 const InsertTableDialog: React.FC<InsertDialogProps> = ({
     onInsert,
     onClose,
+    anchorRect,
 }) => {
     const [rows, setRows] = useState(3);
     const [cols, setCols] = useState(3);
@@ -42,8 +45,30 @@ const InsertTableDialog: React.FC<InsertDialogProps> = ({
         return () => document.removeEventListener("mousedown", handler);
     }, [onClose]);
 
-    return (
-        <div className="rte-table-insert-dialog" ref={dialogRef}>
+    const style: React.CSSProperties = { position: "fixed" };
+    if (anchorRect) {
+        const pad = 8;
+        let top = anchorRect.bottom + 4;
+        let left = anchorRect.left;
+        if (left + 220 > window.innerWidth - pad) {
+            left = window.innerWidth - 220 - pad;
+        }
+        if (left < pad) left = pad;
+        if (top + 200 > window.innerHeight - pad) {
+            top = anchorRect.top - 200 - 4;
+        }
+        if (top < pad) top = pad;
+        style.top = top;
+        style.left = left;
+    }
+
+    return createPortal(
+        <div
+            className="rte-table-insert-dialog"
+            ref={dialogRef}
+            style={style}
+            onMouseDown={(e) => e.preventDefault()}
+        >
             <div className="rte-table-insert-title">Insert Table</div>
             <div className="rte-table-insert-fields">
                 <label className="rte-table-insert-label">
@@ -62,6 +87,7 @@ const InsertTableDialog: React.FC<InsertDialogProps> = ({
                             )
                         }
                         className="rte-table-insert-input"
+                        onMouseDown={(e) => e.stopPropagation()}
                     />
                 </label>
                 <label className="rte-table-insert-label">
@@ -80,6 +106,7 @@ const InsertTableDialog: React.FC<InsertDialogProps> = ({
                             )
                         }
                         className="rte-table-insert-input"
+                        onMouseDown={(e) => e.stopPropagation()}
                     />
                 </label>
             </div>
@@ -90,7 +117,8 @@ const InsertTableDialog: React.FC<InsertDialogProps> = ({
             >
                 Insert
             </button>
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -193,6 +221,15 @@ interface TableButtonProps extends ButtonProps {
 
 const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
     const [showDialog, setShowDialog] = useState(false);
+    const btnRef = useRef<HTMLButtonElement>(null);
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+
+    const handleToggle = useCallback(() => {
+        if (!showDialog && btnRef.current) {
+            setAnchorRect(btnRef.current.getBoundingClientRect());
+        }
+        setShowDialog((v) => !v);
+    }, [showDialog]);
 
     const handleInsert = useCallback(
         (rows: number, cols: number) => {
@@ -203,7 +240,6 @@ const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
             if (!sel || sel.rangeCount === 0) return;
             const range = sel.getRangeAt(0);
 
-            // Find the editor's contentEditable root
             const container = range.commonAncestorContainer;
             const editorEl =
                 container.nodeType === Node.TEXT_NODE
@@ -214,7 +250,6 @@ const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
 
             const table = createTable(rows, cols);
 
-            // Insert after the current block element
             let block: HTMLElement | null = editorEl;
             while (
                 block &&
@@ -230,12 +265,10 @@ const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
                 editorRoot.appendChild(table);
             }
 
-            // Add a paragraph after the table so the user can continue typing
             const p = document.createElement("p");
             p.innerHTML = "<br>";
             table.parentNode?.insertBefore(p, table.nextSibling);
 
-            // Focus the first cell
             const firstCell = table.querySelector("td, th") as HTMLTableCellElement | null;
             if (firstCell) {
                 const newRange = document.createRange();
@@ -249,10 +282,11 @@ const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
     );
 
     return (
-        <div style={{ position: "relative" }}>
+        <>
             <button
+                ref={btnRef}
                 type="button"
-                onClick={() => setShowDialog(!showDialog)}
+                onClick={handleToggle}
                 disabled={props.disabled}
                 className={`rte-toolbar-button ${
                     props.isActive ? "rte-toolbar-button-active" : ""
@@ -266,9 +300,10 @@ const TableToolbarButton: React.FC<TableButtonProps> = (props) => {
                 <InsertTableDialog
                     onInsert={handleInsert}
                     onClose={() => setShowDialog(false)}
+                    anchorRect={anchorRect}
                 />
             )}
-        </div>
+        </>
     );
 };
 
