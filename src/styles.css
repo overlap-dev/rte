@@ -875,7 +875,7 @@
 
 /* Table Context Menu */
 .rte-table-context-menu {
-    z-index: 1000;
+    z-index: 10000;
     background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: 8px;
@@ -922,7 +922,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 .rte-link-dialog {
-    z-index: 1000;
+    z-index: 10000;
     background: var(--rte-content-bg, white);
     border: 1px solid var(--rte-border-color);
     border-radius: 10px;
@@ -1197,7 +1197,7 @@
 
 .rte-link-tooltip {
     position: fixed;
-    z-index: 1002;
+    z-index: 10000;
     background: var(--rte-content-bg);
     border: 1px solid var(--rte-border-color);
     border-radius: 6px;
