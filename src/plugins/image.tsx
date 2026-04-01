@@ -163,7 +163,7 @@ export function createImagePlugin(onImageUpload?: (file: File) => Promise<string
                           setImageUrl(e.target.value);
                           setRawUrl('');
                         }}
-                        placeholder="https://example.com/image.jpg"
+                        placeholder="Paste image URL here..."
                         className="rte-image-url-input"
                       />
                     </label>
