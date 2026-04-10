@@ -397,8 +397,10 @@ function applyLinkData(
     // Target
     if (data.target && data.target !== "_self") {
         link.setAttribute("target", data.target);
+        link.setAttribute("rel", "noopener noreferrer");
     } else {
         link.removeAttribute("target");
+        link.removeAttribute("rel");
     }
 
     // Custom field data-attributes
@@ -490,9 +492,11 @@ const LinkToolbarButton: React.FC<LinkButtonProps> = (props) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const href = link.getAttribute("href");
-                if (href && isUrlSafe(href)) window.open(href, "_blank");
+                if (href && isUrlSafe(href)) window.open(href, "_blank", "noopener,noreferrer");
                 return;
             }
+
+            e.preventDefault();
 
             if (isOpenRef.current) return;
 
