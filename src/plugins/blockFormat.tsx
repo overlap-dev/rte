@@ -96,14 +96,23 @@ export function createBlockFormatPlugin(
 
         if (!element) return undefined;
 
+        // When the selection spans multiple blocks, commonAncestorContainer
+        // may be the editor root. Fall back to startContainer to detect
+        // formats from an element that is actually inside the content.
+        const startNode = range.startContainer;
+        const startEl =
+            startNode.nodeType === Node.TEXT_NODE
+                ? startNode.parentElement
+                : (startNode as HTMLElement);
+
         const tagName = element.tagName.toLowerCase();
 
         if (headings.includes(tagName)) return tagName;
-        if (element.closest("pre")) return "code";
-        if (element.closest("blockquote")) return "blockquote";
-        if (findClosestCheckboxList(element)) return "checkbox-list";
-        if (element.closest("ul")) return "ul";
-        if (element.closest("ol")) return "ol";
+        if (element.closest("pre") || startEl?.closest("pre")) return "code";
+        if (element.closest("blockquote") || startEl?.closest("blockquote")) return "blockquote";
+        if (findClosestCheckboxList(element) || (startEl && findClosestCheckboxList(startEl))) return "checkbox-list";
+        if (element.closest("ul") || startEl?.closest("ul")) return "ul";
+        if (element.closest("ol") || startEl?.closest("ol")) return "ol";
         if (tagName === "p") return "p";
 
         return undefined;
@@ -151,6 +160,36 @@ export function createBlockFormatPlugin(
                     : (container as HTMLElement);
             };
 
+            // When the selection spans multiple blocks, commonAncestorContainer
+            // is the editor root. Use startContainer to reach elements inside
+            // the actual selected content.
+            const getStartElement = (): HTMLElement | null => {
+                const sel = editor.getSelection();
+                if (!sel || sel.rangeCount === 0) return null;
+                const start = sel.getRangeAt(0).startContainer;
+                return start.nodeType === Node.TEXT_NODE
+                    ? start.parentElement
+                    : (start as HTMLElement);
+            };
+
+            const stripCheckboxAttributes = (list: HTMLElement) => {
+                list.classList.remove("rte-checkbox-list");
+                list.querySelectorAll("li[role='checkbox']").forEach((li) => {
+                    li.removeAttribute("role");
+                    li.removeAttribute("tabIndex");
+                    li.removeAttribute("aria-checked");
+                });
+            };
+
+            const findCheckboxInSelection = (): HTMLElement | null => {
+                const el = getCursorElement();
+                const startEl = getStartElement();
+                return (
+                    (el ? findClosestCheckboxList(el) : null) ||
+                    (startEl ? findClosestCheckboxList(startEl) : null)
+                );
+            };
+
             // Helper: merge all adjacent <pre> elements in the editor into one
             const mergeAdjacentPre = () => {
                 const root = document.activeElement;
@@ -174,19 +213,12 @@ export function createBlockFormatPlugin(
             // Helper: if cursor is inside a list, remove the list first
             const escapeListIfNeeded = () => {
                 const el = getCursorElement();
-                if (!el) return;
-                const inCheckbox = findClosestCheckboxList(el);
-                const inUl = el.closest("ul");
-                const inOl = el.closest("ol");
+                const startEl = getStartElement();
+                const inCheckbox = findCheckboxInSelection();
+                const inUl = el?.closest("ul") || startEl?.closest("ul");
+                const inOl = el?.closest("ol") || startEl?.closest("ol");
                 if (inCheckbox) {
-                    inCheckbox.classList.remove("rte-checkbox-list");
-                    inCheckbox
-                        .querySelectorAll("li[role='checkbox']")
-                        .forEach((li) => {
-                            li.removeAttribute("role");
-                            li.removeAttribute("tabIndex");
-                            li.removeAttribute("aria-checked");
-                        });
+                    stripCheckboxAttributes(inCheckbox);
                     editor.executeCommand("insertUnorderedList");
                 } else if (inUl) {
                     editor.executeCommand("insertUnorderedList");
@@ -196,26 +228,31 @@ export function createBlockFormatPlugin(
             };
 
             if (value === "checkbox-list") {
-                const el = getCursorElement();
-                if (!el) return;
-
-                const checkboxList = findClosestCheckboxList(el);
+                const checkboxList = findCheckboxInSelection();
                 if (checkboxList) {
-                    checkboxList.classList.remove("rte-checkbox-list");
-                    checkboxList
-                        .querySelectorAll("li[role='checkbox']")
-                        .forEach((li) => {
-                            li.removeAttribute("role");
-                            li.removeAttribute("tabIndex");
-                            li.removeAttribute("aria-checked");
-                        });
+                    stripCheckboxAttributes(checkboxList);
                 } else {
                     editor.executeCommand("insertCheckboxList");
                 }
             } else if (value === "ul") {
-                editor.executeCommand("insertUnorderedList");
+                const checkboxList = findCheckboxInSelection();
+                if (checkboxList) {
+                    stripCheckboxAttributes(checkboxList);
+                } else {
+                    editor.executeCommand("insertUnorderedList");
+                }
             } else if (value === "ol") {
-                editor.executeCommand("insertOrderedList");
+                const checkboxList = findCheckboxInSelection();
+                if (checkboxList) {
+                    stripCheckboxAttributes(checkboxList);
+                    const ol = document.createElement("ol");
+                    while (checkboxList.firstChild) {
+                        ol.appendChild(checkboxList.firstChild);
+                    }
+                    checkboxList.parentNode?.replaceChild(ol, checkboxList);
+                } else {
+                    editor.executeCommand("insertOrderedList");
+                }
             } else if (value === "blockquote") {
                 const el = getCursorElement();
                 if (el?.closest("blockquote")) {
@@ -252,14 +289,20 @@ export function createBlockFormatPlugin(
 
             if (!element) return false;
 
+            const startNode = range.startContainer;
+            const startEl =
+                startNode.nodeType === Node.TEXT_NODE
+                    ? startNode.parentElement
+                    : (startNode as HTMLElement);
+
             const tagName = element.tagName.toLowerCase();
             return (
                 headings.includes(tagName) ||
-                element.closest("pre") !== null ||
-                element.closest("blockquote") !== null ||
-                findClosestCheckboxList(element) !== null ||
-                element.closest("ul") !== null ||
-                element.closest("ol") !== null
+                element.closest("pre") !== null || startEl?.closest("pre") !== null ||
+                element.closest("blockquote") !== null || startEl?.closest("blockquote") !== null ||
+                findClosestCheckboxList(element) !== null || (startEl != null && findClosestCheckboxList(startEl) !== null) ||
+                element.closest("ul") !== null || startEl?.closest("ul") !== null ||
+                element.closest("ol") !== null || startEl?.closest("ol") !== null
             );
         },
         canExecute: () => true,

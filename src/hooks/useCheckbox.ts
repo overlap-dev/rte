@@ -12,7 +12,6 @@ import {
     findClosestListItem,
     isCheckboxList,
     isNestedListItem,
-    setCursorInTextNode,
 } from "../utils/dom";
 
 interface UseCheckboxOptions {
@@ -265,11 +264,25 @@ export function useCheckbox({
                 return true;
             }
 
-            // Normal case: create a new checkbox item
+            // Normal case: split content at cursor and create a new checkbox item
+            const afterRange = document.createRange();
+            afterRange.setStart(range.startContainer, range.startOffset);
+            if (listItem.lastChild) {
+                afterRange.setEndAfter(listItem.lastChild);
+            } else {
+                afterRange.setEnd(listItem, listItem.childNodes.length);
+            }
+            const afterFragment = afterRange.extractContents();
+
             const newLi = document.createElement("li");
             updateListItemChecked(newLi, false);
-            const textNode = document.createTextNode(" ");
-            newLi.appendChild(textNode);
+
+            const hasContent = afterFragment.textContent?.trim();
+            if (hasContent) {
+                newLi.appendChild(afterFragment);
+            } else {
+                newLi.appendChild(document.createTextNode(" "));
+            }
 
             if (listItem.nextSibling) {
                 checkboxList.insertBefore(newLi, listItem.nextSibling);
@@ -277,10 +290,15 @@ export function useCheckbox({
                 checkboxList.appendChild(newLi);
             }
 
+            if (!listItem.firstChild) {
+                listItem.appendChild(document.createTextNode(" "));
+            }
+
             if (editor) ensureAllCheckboxes(editor);
 
+            const cursorNode = newLi.firstChild || newLi;
             const newRange = document.createRange();
-            newRange.setStart(textNode, 0);
+            newRange.setStart(cursorNode, 0);
             newRange.collapse(true);
             selection.removeAllRanges();
             selection.addRange(newRange);
@@ -323,8 +341,19 @@ export function useCheckbox({
                 return false;
             }
 
-            // Already in a checkbox list? Remove it.
-            const existingList = findClosestCheckboxList(element);
+            // Resolve the element at the start of the selection as well,
+            // because when selecting across multiple list items the
+            // commonAncestorContainer is the editor root (above the list).
+            const startNode = range.startContainer;
+            const startElement =
+                startNode.nodeType === Node.TEXT_NODE
+                    ? startNode.parentElement
+                    : (startNode as HTMLElement);
+
+            // Already in a checkbox list? Remove it (convert back to bullet list).
+            const existingList =
+                findClosestCheckboxList(element) ||
+                (startElement ? findClosestCheckboxList(startElement) : null);
             if (existingList) {
                 existingList.classList.remove("rte-checkbox-list");
                 existingList
@@ -338,53 +367,72 @@ export function useCheckbox({
                 return true;
             }
 
-            // Create new checkbox list
-            const ul = document.createElement("ul");
-            ul.classList.add("rte-checkbox-list");
+            // Already in a <ul> (bullet list)? Convert in-place to checkbox.
+            const existingUl =
+                (element.closest("ul") as HTMLElement | null) ||
+                (startElement?.closest("ul") as HTMLElement | null);
+            if (existingUl && editor.contains(existingUl)) {
+                existingUl.classList.add("rte-checkbox-list");
+                existingUl.querySelectorAll(":scope > li").forEach((li) => {
+                    updateListItemChecked(li as HTMLLIElement, false);
+                });
+                ensureAllCheckboxes(editor);
+                isUpdatingRef.current = false;
+                const content = getDomContent();
+                pushToHistory(content);
+                notifyChange(content);
+                return true;
+            }
 
-            const li = document.createElement("li");
-            updateListItemChecked(li, false);
-            const textNode = document.createTextNode(" ");
-            li.appendChild(textNode);
-            ul.appendChild(li);
-
-            // Find block element to replace
-            const blockElement = element.closest(
-                "p, div, h1, h2, h3, h4, h5, h6, blockquote"
-            );
-            const isValidBlockElement =
-                blockElement &&
-                blockElement !== editor &&
-                editor.contains(blockElement) &&
-                blockElement.parentElement;
-
-            if (isValidBlockElement) {
-                const textContent = blockElement.textContent || "";
-                blockElement.parentElement!.replaceChild(ul, blockElement);
-                const finalTextNode = li.firstChild as Text;
-                if (finalTextNode) {
-                    finalTextNode.textContent = textContent || " ";
-                    const cursorPos = textContent ? textContent.length : 0;
-                    setCursorInTextNode(finalTextNode, cursorPos, editor);
+            // Already in an <ol> (numbered list)? Convert to <ul> first,
+            // then make it a checkbox list.
+            const existingOl =
+                (element.closest("ol") as HTMLElement | null) ||
+                (startElement?.closest("ol") as HTMLElement | null);
+            if (existingOl && editor.contains(existingOl)) {
+                const ul = document.createElement("ul");
+                ul.classList.add("rte-checkbox-list");
+                while (existingOl.firstChild) {
+                    ul.appendChild(existingOl.firstChild);
                 }
-            } else {
-                try {
-                    range.deleteContents();
-                    range.insertNode(ul);
-                    const finalTextNode = li.firstChild as Text;
-                    if (finalTextNode) {
-                        setCursorInTextNode(finalTextNode, 0, editor);
-                    }
-                } catch (_) {
-                    editor.appendChild(ul);
-                    const finalTextNode = li.firstChild as Text;
-                    if (finalTextNode) {
-                        setCursorInTextNode(finalTextNode, 0, editor);
-                    }
+                existingOl.parentNode?.replaceChild(ul, existingOl);
+                ul.querySelectorAll(":scope > li").forEach((li) => {
+                    updateListItemChecked(li as HTMLLIElement, false);
+                });
+                ensureAllCheckboxes(editor);
+                isUpdatingRef.current = false;
+                const content = getDomContent();
+                pushToHistory(content);
+                notifyChange(content);
+                return true;
+            }
+
+            // Not in any list: use the browser's insertUnorderedList command
+            // to properly handle single paragraphs and multi-paragraph selections,
+            // then convert the resulting <ul> to a checkbox list.
+            if (document.activeElement !== editor) {
+                editor.focus();
+            }
+            document.execCommand("insertUnorderedList", false);
+
+            // Find the <ul> the cursor is now inside
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const r = sel.getRangeAt(0);
+                const node =
+                    r.commonAncestorContainer.nodeType === Node.TEXT_NODE
+                        ? r.commonAncestorContainer.parentElement
+                        : (r.commonAncestorContainer as HTMLElement);
+                const newUl = node?.closest("ul");
+                if (newUl && editor.contains(newUl)) {
+                    newUl.classList.add("rte-checkbox-list");
+                    newUl.querySelectorAll(":scope > li").forEach((li) => {
+                        updateListItemChecked(li as HTMLLIElement, false);
+                    });
                 }
             }
 
-            // After insertion: ensure attributes and save to history
+            // Finalize: ensure attributes and save to history
             setTimeout(() => {
                 if (!editor) return;
                 ensureAllCheckboxes(editor);
