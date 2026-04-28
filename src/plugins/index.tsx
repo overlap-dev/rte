@@ -77,6 +77,8 @@ export const codeInlinePlugin: Plugin = {
             container.nodeType === Node.TEXT_NODE
                 ? container.parentElement
                 : (container as HTMLElement);
+        let modified = false;
+
         const existingCode = element?.closest("code");
         if (existingCode) {
             // Unwrap code
@@ -86,6 +88,7 @@ export const codeInlinePlugin: Plugin = {
                     parent.insertBefore(existingCode.firstChild, existingCode);
                 }
                 parent.removeChild(existingCode);
+                modified = true;
             }
         } else if (!range.collapsed) {
             // Wrap in code
@@ -98,6 +101,17 @@ export const codeInlinePlugin: Plugin = {
                 code.appendChild(fragment);
                 range.insertNode(code);
             }
+            modified = true;
+        }
+
+        // surroundContents() does not fire an `input` event, so the editor's
+        // change-tracking does not run. Dispatch one manually so onChange and
+        // exportHtml see the new <code> wrapping.
+        if (modified) {
+            const editorEl = element?.closest(
+                '[contenteditable="true"]'
+            ) as HTMLElement | null;
+            editorEl?.dispatchEvent(new Event("input", { bubbles: true }));
         }
     },
     isActive: () => {

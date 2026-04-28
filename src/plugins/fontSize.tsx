@@ -53,24 +53,30 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
                     }
                     
                     if (element) {
-                        // Erstelle oder aktualisiere span mit fontSize
                         const span = document.createElement('span');
                         span.style.fontSize = `${value}px`;
-                        
+
                         try {
                             range.surroundContents(span);
                         } catch (e) {
-                            // If surroundContents fails
                             const contents = range.extractContents();
                             span.appendChild(contents);
                             range.insertNode(span);
                         }
-                        
-                        // Cursor setzen
+
                         range.setStartAfter(span);
                         range.collapse(true);
                         selection.removeAllRanges();
                         selection.addRange(range);
+
+                        // surroundContents() does not fire an `input` event;
+                        // dispatch one so onChange/exportHtml see the change.
+                        const editorEl = element.closest(
+                            '[contenteditable="true"]'
+                        ) as HTMLElement | null;
+                        editorEl?.dispatchEvent(
+                            new Event('input', { bubbles: true })
+                        );
                     }
                 }
             }
