@@ -31,76 +31,46 @@ export function indentListItem(selection: Selection): boolean {
   // Max depth: 6 (as per HTML standard)
   if (depth >= 6) return false;
 
-  // Find previous list item
+  // Find previous list item -- indent is only valid when there is a previous
+  // sibling to nest under. This matches the behavior of Word/Google Docs and
+  // avoids creating empty <li> elements when indenting the first item.
   const previousItem = listItem.previousElementSibling as HTMLElement | null;
-  
-  if (previousItem && previousItem.tagName === 'LI') {
-    // Create nested list in the previous item
-    let nestedList = previousItem.querySelector('ul, ol');
-    
-    if (!nestedList) {
-      nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
-      if (list.classList.contains('rte-checkbox-list')) {
-        (nestedList as HTMLElement).classList.add('rte-checkbox-list');
-      }
-      previousItem.appendChild(nestedList);
-    }
-    
-    // Move current item into nested list
-    nestedList.appendChild(listItem);
-    
-    // Set cursor position
-    const textNode = listItem.firstChild;
-    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-      range.setStart(textNode, 0);
-      range.collapse(true);
-    } else if (listItem.firstChild) {
-      range.setStart(listItem.firstChild, 0);
-      range.collapse(true);
-    } else {
-      const newText = document.createTextNode('');
-      listItem.appendChild(newText);
-      range.setStart(newText, 0);
-      range.collapse(true);
-    }
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    return true;
-  } else {
-    // No previous item — create new nested list in current item
-    const nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
+  if (!previousItem || previousItem.tagName !== 'LI') return false;
+
+  // Reuse a direct-child nested list on the previous item if one exists,
+  // otherwise create a new one. Using `:scope >` ensures we only match
+  // direct children, not deeper nested lists.
+  let nestedList = previousItem.querySelector(':scope > ul, :scope > ol');
+
+  if (!nestedList) {
+    nestedList = document.createElement(list.tagName.toLowerCase() as 'ul' | 'ol');
     if (list.classList.contains('rte-checkbox-list')) {
-      nestedList.classList.add('rte-checkbox-list');
+      (nestedList as HTMLElement).classList.add('rte-checkbox-list');
     }
-    
-    // Move all following items into the nested list
-    let nextSibling = listItem.nextElementSibling;
-    while (nextSibling && nextSibling.tagName === 'LI') {
-      const toMove = nextSibling;
-      nextSibling = nextSibling.nextElementSibling;
-      nestedList.appendChild(toMove);
-    }
-    
-    if (nestedList.children.length > 0) {
-      listItem.appendChild(nestedList);
-    } else {
-      // If no following items, create empty sub-item
-      const subItem = document.createElement('li');
-      nestedList.appendChild(subItem);
-      listItem.appendChild(nestedList);
-      
-      // Set cursor in sub-item
-      const newText = document.createTextNode('');
-      subItem.appendChild(newText);
-      range.setStart(newText, 0);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    
-    return true;
+    previousItem.appendChild(nestedList);
   }
+
+  // Move current item into nested list
+  nestedList.appendChild(listItem);
+
+  // Set cursor position
+  const textNode = listItem.firstChild;
+  if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+    range.setStart(textNode, 0);
+    range.collapse(true);
+  } else if (listItem.firstChild) {
+    range.setStart(listItem.firstChild, 0);
+    range.collapse(true);
+  } else {
+    const newText = document.createTextNode('');
+    listItem.appendChild(newText);
+    range.setStart(newText, 0);
+    range.collapse(true);
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  return true;
 }
 
 /**

@@ -28,6 +28,8 @@ export function handleMarkdownShortcut(
     if (node.nodeType !== Node.TEXT_NODE) return false;
 
     const textNode = node as Text;
+    if (textNode.parentElement?.closest("pre")) return false;
+
     const text = textNode.textContent || "";
     const offset = range.startOffset;
 

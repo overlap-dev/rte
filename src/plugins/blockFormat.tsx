@@ -192,8 +192,9 @@ export function createBlockFormatPlugin(
 
             // Helper: merge all adjacent <pre> elements in the editor into one
             const mergeAdjacentPre = () => {
-                const root = document.activeElement;
-                if (!root || !root.getAttribute("contenteditable")) return;
+                const refEl = getCursorElement() || getStartElement();
+                const root = refEl?.closest('[contenteditable="true"]');
+                if (!root) return;
                 const children = Array.from(root.children);
                 for (let i = 0; i < children.length; i++) {
                     const child = children[i];
@@ -255,7 +256,10 @@ export function createBlockFormatPlugin(
                 }
             } else if (value === "blockquote") {
                 const el = getCursorElement();
-                if (el?.closest("blockquote")) {
+                const startEl = getStartElement();
+                const inBlockquote =
+                    el?.closest("blockquote") || startEl?.closest("blockquote");
+                if (inBlockquote) {
                     editor.executeCommand("formatBlock", "<p>");
                 } else {
                     escapeListIfNeeded();
@@ -263,7 +267,9 @@ export function createBlockFormatPlugin(
                 }
             } else if (value === "code") {
                 const el = getCursorElement();
-                if (el?.closest("pre")) {
+                const startEl = getStartElement();
+                const inPre = el?.closest("pre") || startEl?.closest("pre");
+                if (inPre) {
                     editor.executeCommand("formatBlock", "<p>");
                 } else {
                     escapeListIfNeeded();

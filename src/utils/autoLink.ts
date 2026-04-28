@@ -26,10 +26,10 @@ export function handleAutoLink(editor: HTMLElement, e: KeyboardEvent): boolean {
     const node = range.startContainer;
     if (node.nodeType !== Node.TEXT_NODE) return false;
 
-    // Don't auto-link if already inside an anchor
+    // Don't auto-link if already inside an anchor or inside a code block
     const parentEl =
         node.parentElement;
-    if (parentEl?.closest("a")) return false;
+    if (parentEl?.closest("a") || parentEl?.closest("pre")) return false;
 
     const textNode = node as Text;
     const text = textNode.textContent || "";
