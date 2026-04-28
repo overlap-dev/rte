@@ -28,6 +28,8 @@ const REMOVE_TAGS = new Set([
     "details",
     "video",
     "audio",
+    "source",
+    "canvas",
     "marquee",
 ]);
 
@@ -77,14 +79,71 @@ export function sanitizeHtml(html: string): string {
     return doc.body.innerHTML;
 }
 
+/** Strip dangerous attributes from an element in place. */
+function sanitizeAttributes(el: Element): void {
+    const attrsToRemove: string[] = [];
+    for (let i = 0; i < el.attributes.length; i++) {
+        const attr = el.attributes[i];
+        const name = attr.name.toLowerCase();
+
+        if (REMOVE_ATTRS.has(name) || REMOVE_ATTRS_PATTERN.test(name)) {
+            attrsToRemove.push(attr.name);
+            continue;
+        }
+
+        // Validate URL attributes
+        if (name === "href" || name === "src" || name === "action" || name === "cite" || name === "poster") {
+            const value = attr.value.trim();
+            if (value) {
+                // Allow data:image/* for img src (matches contentToDOM behavior),
+                // but block data:image/svg+xml because SVG can carry executable content.
+                const lowerValue = value.toLowerCase();
+                const isDataImage =
+                    name === "src" &&
+                    el.tagName === "IMG" &&
+                    lowerValue.startsWith("data:image/") &&
+                    !lowerValue.startsWith("data:image/svg");
+                if (!isDataImage && !ALLOWED_SCHEMES.test(value)) {
+                    attrsToRemove.push(attr.name);
+                }
+            }
+        }
+
+        // Remove dangerous URI schemes in any attribute value
+        const lowerValue = attr.value.toLowerCase().replace(/[\x00-\x1f\x7f\s]/g, "");
+        if (
+            lowerValue.includes("javascript:") ||
+            lowerValue.includes("vbscript:") ||
+            lowerValue.includes("data:text/html")
+        ) {
+            attrsToRemove.push(attr.name);
+        }
+    }
+
+    attrsToRemove.forEach((attrName) => el.removeAttribute(attrName));
+}
+
 /** Recursively sanitize a DOM node. */
 function sanitizeNode(node: Node): void {
     const childrenToRemove: Node[] = [];
+    const pictureReplacements: Array<[Element, HTMLImageElement]> = [];
 
     node.childNodes.forEach((child) => {
         if (child.nodeType === Node.ELEMENT_NODE) {
             const el = child as Element;
             const tag = el.tagName.toLowerCase();
+
+            // Unwrap <picture>: keep its inner <img>, drop the wrapper and any
+            // <source> children. If no <img> exists, remove the picture entirely.
+            if (tag === "picture") {
+                const img = el.querySelector("img");
+                if (img) {
+                    pictureReplacements.push([el, img as HTMLImageElement]);
+                } else {
+                    childrenToRemove.push(child);
+                }
+                return;
+            }
 
             // Remove dangerous tags entirely
             if (REMOVE_TAGS.has(tag)) {
@@ -92,45 +151,17 @@ function sanitizeNode(node: Node): void {
                 return;
             }
 
-            // Remove dangerous attributes
-            const attrsToRemove: string[] = [];
-            for (let i = 0; i < el.attributes.length; i++) {
-                const attr = el.attributes[i];
-                const name = attr.name.toLowerCase();
-
-                if (REMOVE_ATTRS.has(name) || REMOVE_ATTRS_PATTERN.test(name)) {
-                    attrsToRemove.push(attr.name);
-                    continue;
-                }
-
-                // Validate URL attributes
-                if (name === "href" || name === "src" || name === "action" || name === "cite" || name === "poster") {
-                    const value = attr.value.trim();
-                    if (value) {
-                        // Allow data:image/* for img src (matches contentToDOM behavior)
-                        const isDataImage = name === "src" && el.tagName === "IMG" && value.startsWith("data:image/");
-                        if (!isDataImage && !ALLOWED_SCHEMES.test(value)) {
-                            attrsToRemove.push(attr.name);
-                        }
-                    }
-                }
-
-                // Remove dangerous URI schemes in any attribute value
-                const lowerValue = attr.value.toLowerCase().replace(/[\x00-\x1f\x7f\s]/g, "");
-                if (
-                    lowerValue.includes("javascript:") ||
-                    lowerValue.includes("vbscript:") ||
-                    lowerValue.includes("data:text/html")
-                ) {
-                    attrsToRemove.push(attr.name);
-                }
-            }
-
-            attrsToRemove.forEach((attrName) => el.removeAttribute(attrName));
+            sanitizeAttributes(el);
 
             // Recurse into children
             sanitizeNode(child);
         }
+    });
+
+    // Apply <picture> unwrapping
+    pictureReplacements.forEach(([oldEl, img]) => {
+        sanitizeAttributes(img);
+        oldEl.parentNode?.replaceChild(img, oldEl);
     });
 
     // Remove marked children
