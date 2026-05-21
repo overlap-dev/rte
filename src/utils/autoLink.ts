@@ -7,14 +7,24 @@
 
 import { isUrlSafe } from "./sanitize";
 
-const URL_REGEX =
-    /^(?:https?:\/\/|www\.)[^\s<>'"]+\.[a-z]{2,}[^\s<>'"]*$/i;
+const URL_REGEX = /^(?:https?:\/\/|www\.)[^\s<>'"]+\.[a-z]{2,}[^\s<>'"]*$/i;
 
 /**
  * Check if the word before the cursor is a URL and wrap it in an <a> tag.
  * Called on space/enter keypress in the editor.
+ *
+ * @param editor      The editor root element.
+ * @param e           The triggering keyboard event.
+ * @param pushHistory Optional callback invoked right before mutating the DOM
+ *                    so the caller can capture a pre-conversion snapshot for
+ *                    Undo. Without it, Undo would skip past the auto-link
+ *                    conversion entirely.
  */
-export function handleAutoLink(editor: HTMLElement, e: KeyboardEvent): boolean {
+export function handleAutoLink(
+    editor: HTMLElement,
+    e: KeyboardEvent,
+    pushHistory?: () => void,
+): boolean {
     if (e.key !== " " && e.key !== "Enter") return false;
 
     const selection = window.getSelection();
@@ -27,8 +37,7 @@ export function handleAutoLink(editor: HTMLElement, e: KeyboardEvent): boolean {
     if (node.nodeType !== Node.TEXT_NODE) return false;
 
     // Don't auto-link if already inside an anchor or inside a code block
-    const parentEl =
-        node.parentElement;
+    const parentEl = node.parentElement;
     if (parentEl?.closest("a") || parentEl?.closest("pre")) return false;
 
     const textNode = node as Text;
@@ -68,6 +77,9 @@ export function handleAutoLink(editor: HTMLElement, e: KeyboardEvent): boolean {
 
     const parentNode = textNode.parentNode;
     if (!parentNode) return false;
+
+    // Snapshot pre-conversion state so Undo can restore the plain URL text
+    pushHistory?.();
 
     // Build replacement: [beforeText][<a>word</a>][afterText]
     const frag = document.createDocumentFragment();

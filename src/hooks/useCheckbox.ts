@@ -76,9 +76,7 @@ export function useCheckbox({
             if (!(target instanceof HTMLElement)) return;
 
             const listItem =
-                target.tagName === "LI"
-                    ? target
-                    : target.closest("li");
+                target.tagName === "LI" ? target : target.closest("li");
             if (!listItem) return;
             if (isNestedListItem(listItem)) return;
 
@@ -101,7 +99,7 @@ export function useCheckbox({
         editor.addEventListener(
             "pointerdown",
             handlePointerDown as EventListener,
-            true
+            true,
         );
 
         return () => {
@@ -109,7 +107,7 @@ export function useCheckbox({
             editor.removeEventListener(
                 "pointerdown",
                 handlePointerDown as EventListener,
-                true
+                true,
             );
         };
     }, [editorRef]);
@@ -120,82 +118,79 @@ export function useCheckbox({
      * Handles checkbox-specific keyboard events.
      * Returns true if the event was handled and should not propagate.
      */
-    const handleCheckboxKeyDown = useCallback(
-        (e: KeyboardEvent): boolean => {
-            // Arrow up/down: navigate between checkbox items
-            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                const activeItem = getActiveCheckListItem();
-                if (activeItem) {
-                    const backward = e.key === "ArrowUp";
-                    const nextItem = findCheckListItemSibling(
-                        activeItem as HTMLLIElement,
-                        backward
-                    );
-                    if (nextItem) {
-                        e.preventDefault();
-                        nextItem.focus();
-                        return true;
-                    }
-                }
-            }
-
-            // Space: toggle checkbox
-            if (e.key === " ") {
-                const activeItem = getActiveCheckListItem();
-                if (activeItem) {
+    const handleCheckboxKeyDown = useCallback((e: KeyboardEvent): boolean => {
+        // Arrow up/down: navigate between checkbox items
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            const activeItem = getActiveCheckListItem();
+            if (activeItem) {
+                const backward = e.key === "ArrowUp";
+                const nextItem = findCheckListItemSibling(
+                    activeItem as HTMLLIElement,
+                    backward,
+                );
+                if (nextItem) {
                     e.preventDefault();
-                    toggleListItemChecked(activeItem as HTMLLIElement);
-                    const editorEl = activeItem.closest(".rte-editor");
-                    if (editorEl) {
-                        editorEl.dispatchEvent(
-                            new Event("input", { bubbles: true })
-                        );
-                    }
+                    nextItem.focus();
                     return true;
                 }
             }
+        }
 
-            // Escape: blur from checkbox item
-            if (e.key === "Escape") {
-                const activeItem = getActiveCheckListItem();
-                if (activeItem) {
-                    const editorEl = activeItem.closest(".rte-editor");
-                    if (editorEl instanceof HTMLElement) {
-                        editorEl.focus();
-                    }
+        // Space: toggle checkbox
+        if (e.key === " ") {
+            const activeItem = getActiveCheckListItem();
+            if (activeItem) {
+                e.preventDefault();
+                toggleListItemChecked(activeItem as HTMLLIElement);
+                const editorEl = activeItem.closest(".rte-editor");
+                if (editorEl) {
+                    editorEl.dispatchEvent(
+                        new Event("input", { bubbles: true }),
+                    );
+                }
+                return true;
+            }
+        }
+
+        // Escape: blur from checkbox item
+        if (e.key === "Escape") {
+            const activeItem = getActiveCheckListItem();
+            if (activeItem) {
+                const editorEl = activeItem.closest(".rte-editor");
+                if (editorEl instanceof HTMLElement) {
+                    editorEl.focus();
+                }
+                return true;
+            }
+        }
+
+        // Arrow left: focus list item when cursor is at the start
+        if (e.key === "ArrowLeft") {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return false;
+
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const listItem = findClosestListItem(container);
+            if (!listItem) return false;
+
+            const parent = listItem.parentElement;
+            if (
+                parent &&
+                isCheckboxList(parent) &&
+                range.collapsed &&
+                range.startOffset === 0
+            ) {
+                if (document.activeElement !== listItem) {
+                    listItem.focus();
+                    e.preventDefault();
                     return true;
                 }
             }
+        }
 
-            // Arrow left: focus list item when cursor is at the start
-            if (e.key === "ArrowLeft") {
-                const selection = window.getSelection();
-                if (!selection || selection.rangeCount === 0) return false;
-
-                const range = selection.getRangeAt(0);
-                const container = range.commonAncestorContainer;
-                const listItem = findClosestListItem(container);
-                if (!listItem) return false;
-
-                const parent = listItem.parentElement;
-                if (
-                    parent &&
-                    isCheckboxList(parent) &&
-                    range.collapsed &&
-                    range.startOffset === 0
-                ) {
-                    if (document.activeElement !== listItem) {
-                        listItem.focus();
-                        e.preventDefault();
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        },
-        []
-    );
+        return false;
+    }, []);
 
     /**
      * Handles Enter key in checkbox lists.
@@ -432,19 +427,23 @@ export function useCheckbox({
                 }
             }
 
-            // Finalize: ensure attributes and save to history
-            setTimeout(() => {
+            // Finalize: ensure attributes and save to history.
+            // Two chained requestAnimationFrames let the browser commit the
+            // execCommand("insertUnorderedList") DOM change before we
+            // normalize and snapshot — no more magic 100ms timeout.
+            const finalize = () => {
                 if (!editor) return;
                 ensureAllCheckboxes(editor);
                 const content = getDomContent();
                 pushToHistory(content);
                 isUpdatingRef.current = false;
                 notifyChange(content);
-            }, 100);
+            };
+            requestAnimationFrame(() => requestAnimationFrame(finalize));
 
             return true;
         },
-        [isUpdatingRef, getDomContent, pushToHistory, notifyChange]
+        [isUpdatingRef, getDomContent, pushToHistory, notifyChange],
     );
 
     return {

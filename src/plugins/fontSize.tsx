@@ -1,22 +1,34 @@
-import React from 'react';
-import { Plugin, EditorAPI, ButtonProps } from '../types';
-import { Dropdown } from '../components/Dropdown';
-import { getCurrentFontSize } from '../utils/stateReflection';
+import { Dropdown } from "../components/Dropdown";
+import { ButtonProps, EditorAPI, Plugin } from "../types";
+import { getCurrentFontSize } from "../utils/stateReflection";
 
-export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 24]): Plugin {
+export function createFontSizePlugin(
+    fontSizes: number[] = [12, 14, 16, 18, 20, 24],
+): Plugin {
     return {
-        name: 'fontSize',
-        type: 'inline',
-        renderButton: (props: ButtonProps & { fontSizes?: number[]; onSelect?: (value: string) => void; editorAPI?: EditorAPI; currentValue?: string }) => {
+        name: "fontSize",
+        type: "inline",
+        renderButton: (
+            props: ButtonProps & {
+                fontSizes?: number[];
+                onSelect?: (value: string) => void;
+                editorAPI?: EditorAPI;
+                currentValue?: string;
+            },
+        ) => {
             const sizes = props.fontSizes || fontSizes;
-            const options = sizes.map(size => ({
+            const options = sizes.map((size) => ({
                 value: size.toString(),
                 label: `${size}px`,
                 preview: size.toString(),
             }));
 
             // Aktuelle Font-Size aus State Reflection
-            const currentValue = props.currentValue || (props.editorAPI ? getCurrentFontSize(props.editorAPI) : undefined);
+            const currentValue =
+                props.currentValue ||
+                (props.editorAPI
+                    ? getCurrentFontSize(props.editorAPI)
+                    : undefined);
 
             return (
                 <Dropdown
@@ -45,15 +57,18 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
                 if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
                     let element: HTMLElement | null = null;
-                    
-                    if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) {
+
+                    if (
+                        range.commonAncestorContainer.nodeType ===
+                        Node.TEXT_NODE
+                    ) {
                         element = range.commonAncestorContainer.parentElement;
                     } else {
                         element = range.commonAncestorContainer as HTMLElement;
                     }
-                    
+
                     if (element) {
-                        const span = document.createElement('span');
+                        const span = document.createElement("span");
                         span.style.fontSize = `${value}px`;
 
                         try {
@@ -72,10 +87,10 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
                         // surroundContents() does not fire an `input` event;
                         // dispatch one so onChange/exportHtml see the change.
                         const editorEl = element.closest(
-                            '[contenteditable="true"]'
+                            '[contenteditable="true"]',
                         ) as HTMLElement | null;
                         editorEl?.dispatchEvent(
-                            new Event('input', { bubbles: true })
+                            new Event("input", { bubbles: true }),
                         );
                     }
                 }
@@ -84,4 +99,3 @@ export function createFontSizePlugin(fontSizes: number[] = [12, 14, 16, 18, 20, 
         canExecute: () => true,
     };
 }
-

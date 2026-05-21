@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { useCheckbox } from "../hooks/useCheckbox";
 import { useEditorEvents } from "../hooks/useEditorEvents";
 import { useEditorInit } from "../hooks/useEditorInit";
@@ -28,10 +34,10 @@ import {
 } from "../utils/content";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
-import { isUrlSafe, sanitizeHtml } from "../utils/sanitize";
+import { isImageSrcSafe, sanitizeHtml } from "../utils/sanitize";
 import {
-    serializeSelection,
     restoreSerializedSelection,
+    serializeSelection,
 } from "../utils/selection";
 import { buildPluginsFromSettings } from "../utils/settings";
 import { FloatingToolbar } from "./FloatingToolbar";
@@ -68,6 +74,36 @@ export const Editor: React.FC<EditorProps> = ({
     const historyRef = useRef<HistoryManager>(new HistoryManager());
     const isUpdatingRef = useRef(false);
     const mountedRef = useRef(true);
+
+    // Mirror the editor DOM node into state so descendants that need to
+    // reactively bind to it (FloatingToolbar, LinkTooltip) re-render once the
+    // node attaches. A plain ref does not trigger a re-render on assignment.
+    const [editorEl, setEditorEl] = useState<HTMLDivElement | null>(null);
+    const setEditorRef = useCallback((node: HTMLDivElement | null) => {
+        (editorRef as React.MutableRefObject<HTMLDivElement | null>).current =
+            node;
+        setEditorEl(node);
+    }, []);
+
+    // Mirror maxLength prop into a ref so any callback can read the current
+    // value without being recreated when the prop changes.
+    const maxLengthRef = useRef(maxLength);
+    useEffect(() => {
+        maxLengthRef.current = maxLength;
+    }, [maxLength]);
+
+    /**
+     * Returns true if appending `toAdd` would push the editor past maxLength.
+     * For non-text inserts (e.g. images) pass "" — the helper still blocks
+     * when the current length is already at/over the limit.
+     */
+    const wouldExceedMaxLength = useCallback((toAdd: string): boolean => {
+        const max = maxLengthRef.current;
+        if (max === undefined) return false;
+        const editor = editorRef.current;
+        if (!editor) return false;
+        return (editor.innerText || "").length + toAdd.length > max;
+    }, []);
 
     // Track mount status to guard async callbacks
     useEffect(() => {
@@ -222,18 +258,7 @@ export const Editor: React.FC<EditorProps> = ({
             const editor = editorRef.current;
             if (!editor) return false;
 
-            // Save history before non-history commands
-            if (
-                command !== "undo" &&
-                command !== "redo" &&
-                command !== "insertImage" &&
-                command !== "insertCheckboxList"
-            ) {
-                const currentContent = domToContent(editor);
-                const sel = serializeSelection(editor);
-                historyRef.current.push(currentContent, sel);
-            }
-
+            // History/dispatch commands that manage their own snapshots
             if (command === "undo") {
                 undo();
                 return true;
@@ -249,6 +274,7 @@ export const Editor: React.FC<EditorProps> = ({
             }
 
             if (command === "insertImage" && value) {
+                if (wouldExceedMaxLength("")) return false;
                 return handleInsertImage(
                     editor,
                     value,
@@ -259,10 +285,24 @@ export const Editor: React.FC<EditorProps> = ({
                 );
             }
 
-            // General commands via document.execCommand
+            // General commands via document.execCommand.
+            // Snapshot before/after so we only push history when the command
+            // actually changed the document — this prevents Undo from having
+            // to walk through identical no-op entries (e.g. clicking Bold
+            // outside the editor or on an empty selection).
             ensureEditorFocused(editor);
 
+            const beforeContent = domToContent(editor);
+            const beforeSel = serializeSelection(editor);
+
             document.execCommand(command, false, value);
+
+            const afterContent = domToContent(editor);
+            if (
+                JSON.stringify(beforeContent) !== JSON.stringify(afterContent)
+            ) {
+                historyRef.current.push(beforeContent, beforeSel);
+            }
 
             setTimeout(() => {
                 if (!mountedRef.current) return;
@@ -420,7 +460,8 @@ export const Editor: React.FC<EditorProps> = ({
                 const text = editor.innerText || "";
                 const characters = text.length;
                 const trimmed = text.trim();
-                const words = trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+                const words =
+                    trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
                 return { characters, words };
             },
         };
@@ -449,6 +490,7 @@ export const Editor: React.FC<EditorProps> = ({
         notifyChange,
         customLinkComponent,
         customHeadingRenderer,
+        wouldExceedMaxLength,
     ]);
 
     // --- Initialize editor ---
@@ -500,19 +542,31 @@ export const Editor: React.FC<EditorProps> = ({
         const editor = editorRef.current;
         if (!editor) return;
         const handleBeforeInput = (e: Event) => {
-            const text = editor.innerText || "";
-            if (text.length >= maxLength) {
-                const inputEvent = e as InputEvent;
-                if (inputEvent.inputType?.startsWith("insert")) {
-                    e.preventDefault();
-                }
+            const inputEvent = e as InputEvent;
+            if (!inputEvent.inputType?.startsWith("insert")) return;
+
+            // Compute the projected text addition: prefer InputEvent.data
+            // (typing, IME), fall back to clipboard text for paste/drop, and
+            // treat structural inserts (paragraph, line break) as 1 char so
+            // they are blocked once the cap is reached.
+            let projected = "";
+            if (inputEvent.data) {
+                projected = inputEvent.data;
+            } else if (inputEvent.dataTransfer) {
+                projected = inputEvent.dataTransfer.getData("text/plain") || "";
+            } else {
+                projected = "\n";
+            }
+
+            if (wouldExceedMaxLength(projected)) {
+                e.preventDefault();
             }
         };
         editor.addEventListener("beforeinput", handleBeforeInput);
         return () => {
             editor.removeEventListener("beforeinput", handleBeforeInput);
         };
-    }, [maxLength]);
+    }, [maxLength, wouldExceedMaxLength]);
 
     // --- Word count state ---
     const [wordCount, setWordCount] = useState({ characters: 0, words: 0 });
@@ -524,7 +578,8 @@ export const Editor: React.FC<EditorProps> = ({
             const text = editor.innerText || "";
             const characters = text.length;
             const trimmed = text.trim();
-            const words = trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+            const words =
+                trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
             setWordCount({ characters, words });
         };
         updateCount();
@@ -538,6 +593,8 @@ export const Editor: React.FC<EditorProps> = ({
             if (!onImageUpload || !file.type.startsWith("image/")) return;
             const editor = editorRef.current;
             if (!editor) return;
+            // Respect maxLength: refuse new content once the cap is reached.
+            if (wouldExceedMaxLength("")) return;
 
             try {
                 // Show a placeholder while uploading
@@ -585,7 +642,7 @@ export const Editor: React.FC<EditorProps> = ({
                 }
 
                 // Validate the returned URL before setting it
-                if (!isUrlSafe(realUrl) && !realUrl.startsWith("data:image/")) {
+                if (!isImageSrcSafe(realUrl)) {
                     placeholder.remove();
                     return;
                 }
@@ -616,6 +673,7 @@ export const Editor: React.FC<EditorProps> = ({
             const item = items[i];
             if (item.type.startsWith("image/")) {
                 e.preventDefault();
+                if (wouldExceedMaxLength("")) return;
                 const file = item.getAsFile();
                 if (file) insertImageFile(file);
                 return;
@@ -625,11 +683,15 @@ export const Editor: React.FC<EditorProps> = ({
         e.preventDefault();
 
         // Plain-text paste: Cmd/Ctrl+Shift+V
-        const nativeEvent = e.nativeEvent as ClipboardEvent & { shiftKey?: boolean };
+        const nativeEvent = e.nativeEvent as ClipboardEvent & {
+            shiftKey?: boolean;
+        };
         if (nativeEvent.shiftKey) {
             const text = e.clipboardData.getData("text/plain");
-            if (text) {
+            if (text && !wouldExceedMaxLength(text)) {
                 document.execCommand("insertText", false, text);
+                const editor = editorRef.current;
+                if (editor) notifyChange(domToContent(editor));
             }
             return;
         }
@@ -647,8 +709,9 @@ export const Editor: React.FC<EditorProps> = ({
                 const selection = window.getSelection();
                 if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
-                    range.deleteContents();
 
+                    // Build the fragment first so we can measure its text
+                    // contribution against maxLength before inserting it.
                     const tempDiv = document.createElement("div");
                     contentToDOM(
                         pastedContent,
@@ -656,6 +719,10 @@ export const Editor: React.FC<EditorProps> = ({
                         customLinkComponent,
                         customHeadingRenderer,
                     );
+                    const pastedText = tempDiv.innerText || "";
+                    if (wouldExceedMaxLength(pastedText)) return;
+
+                    range.deleteContents();
 
                     const fragment = document.createDocumentFragment();
                     while (tempDiv.firstChild) {
@@ -672,9 +739,12 @@ export const Editor: React.FC<EditorProps> = ({
                     notifyChange(domToContent(editor));
                 }
             } catch (_) {
-                document.execCommand("insertText", false, text);
+                if (text && !wouldExceedMaxLength(text)) {
+                    document.execCommand("insertText", false, text);
+                }
             }
         } else if (text) {
+            if (wouldExceedMaxLength(text)) return;
             document.execCommand("insertText", false, text);
         }
     };
@@ -730,40 +800,57 @@ export const Editor: React.FC<EditorProps> = ({
                 />
             )}
             <div
-                ref={editorRef}
+                ref={setEditorRef}
                 contentEditable={!readOnly}
                 className={`rte-editor ${readOnly ? "rte-editor-readonly" : ""} ${editorClassName || ""}`}
                 data-placeholder={placeholder}
                 onPaste={readOnly ? undefined : handlePaste}
-                onDrop={readOnly ? undefined : (e: React.DragEvent) => {
-                    const files = e.dataTransfer.files;
-                    for (let i = 0; i < files.length; i++) {
-                        if (files[i].type.startsWith("image/")) {
-                            e.preventDefault();
-                            insertImageFile(files[i]);
-                            return;
-                        }
-                    }
-                }}
-                onDragOver={readOnly ? undefined : (e: React.DragEvent) => {
-                    const types = e.dataTransfer.types;
-                    if (types && Array.from(types).includes("Files")) {
-                        e.preventDefault();
-                    }
-                }}
+                onDrop={
+                    readOnly
+                        ? undefined
+                        : (e: React.DragEvent) => {
+                              const files = e.dataTransfer.files;
+                              if (files.length === 0) return;
+                              // Always preventDefault for any file drop so the browser
+                              // does not navigate away from the page when the user
+                              // drops e.g. a PDF or text file onto the editor. We only
+                              // act on images; other file types are silently ignored.
+                              e.preventDefault();
+                              for (let i = 0; i < files.length; i++) {
+                                  if (files[i].type.startsWith("image/")) {
+                                      insertImageFile(files[i]);
+                                      return;
+                                  }
+                              }
+                          }
+                }
+                onDragOver={
+                    readOnly
+                        ? undefined
+                        : (e: React.DragEvent) => {
+                              const types = e.dataTransfer.types;
+                              if (
+                                  types &&
+                                  Array.from(types).includes("Files")
+                              ) {
+                                  e.preventDefault();
+                              }
+                          }
+                }
                 suppressContentEditableWarning
             />
             {!readOnly && (
                 <FloatingToolbar
                     plugins={plugins}
                     editorAPI={editorAPI}
-                    editorElement={editorRef.current}
+                    editorElement={editorEl}
                 />
             )}
-            <LinkTooltip editorElement={editorRef.current} />
+            <LinkTooltip editorElement={editorEl} />
             {showWordCount && (
                 <div className="rte-word-count">
-                    {wordCount.words} words &middot; {wordCount.characters} characters
+                    {wordCount.words} words &middot; {wordCount.characters}{" "}
+                    characters
                 </div>
             )}
         </div>
@@ -800,7 +887,13 @@ function handleInsertImage(
             newRange.collapse(true);
             selection.removeAllRanges();
             selection.addRange(newRange);
-            saveAndNotify(editor, isUpdatingRef, historyRef, mountedRef, notifyChange);
+            saveAndNotify(
+                editor,
+                isUpdatingRef,
+                historyRef,
+                mountedRef,
+                notifyChange,
+            );
             return true;
         }
         selection.removeAllRanges();
@@ -879,8 +972,8 @@ function createImageElement(src: string): HTMLImageElement {
         }
     }
 
-    // Validate URL safety — block javascript:, data:, etc.
-    if (!isUrlSafe(realSrc) && !realSrc.startsWith("data:image/")) {
+    // Validate URL safety — block javascript:, data:image/svg, etc.
+    if (!isImageSrcSafe(realSrc)) {
         realSrc = "";
     }
 

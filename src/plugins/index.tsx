@@ -13,42 +13,42 @@ export const boldPlugin: Plugin = createInlinePlugin(
     "bold",
     "bold",
     "mdi:format-bold",
-    "Bold"
+    "Bold",
 );
 
 export const italicPlugin: Plugin = createInlinePlugin(
     "italic",
     "italic",
     "mdi:format-italic",
-    "Italic"
+    "Italic",
 );
 
 export const underlinePlugin: Plugin = createInlinePlugin(
     "underline",
     "underline",
     "mdi:format-underline",
-    "Underline"
+    "Underline",
 );
 
 export const strikethroughPlugin: Plugin = createInlinePlugin(
     "strikethrough",
     "strikeThrough",
     "mdi:format-strikethrough",
-    "Strikethrough"
+    "Strikethrough",
 );
 
 export const subscriptPlugin: Plugin = createInlinePlugin(
     "subscript",
     "subscript",
     "mdi:format-subscript",
-    "Subscript"
+    "Subscript",
 );
 
 export const superscriptPlugin: Plugin = createInlinePlugin(
     "superscript",
     "superscript",
     "mdi:format-superscript",
-    "Superscript"
+    "Superscript",
 );
 
 export const codeInlinePlugin: Plugin = {
@@ -109,7 +109,7 @@ export const codeInlinePlugin: Plugin = {
         // exportHtml see the new <code> wrapping.
         if (modified) {
             const editorEl = element?.closest(
-                '[contenteditable="true"]'
+                '[contenteditable="true"]',
             ) as HTMLElement | null;
             editorEl?.dispatchEvent(new Event("input", { bubbles: true }));
         }
@@ -157,14 +157,14 @@ export const undoPlugin: Plugin = createCommandPlugin(
     "undo",
     "undo",
     "mdi:undo",
-    "Undo"
+    "Undo",
 );
 
 export const redoPlugin: Plugin = createCommandPlugin(
     "redo",
     "redo",
     "mdi:redo",
-    "Redo"
+    "Redo",
 );
 
 /**

@@ -1,26 +1,29 @@
-import { Plugin } from "../types";
 import {
     boldPlugin,
+    codeInlinePlugin,
+    horizontalRulePlugin,
+    indentListItemPlugin,
     italicPlugin,
-    underlinePlugin,
+    outdentListItemPlugin,
+    redoPlugin,
     strikethroughPlugin,
     subscriptPlugin,
     superscriptPlugin,
-    codeInlinePlugin,
+    underlinePlugin,
     undoPlugin,
-    redoPlugin,
-    indentListItemPlugin,
-    outdentListItemPlugin,
-    horizontalRulePlugin,
 } from "../plugins";
+import { createAlignmentPlugin } from "../plugins/alignment";
 import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import { clearFormattingPlugin } from "../plugins/clearFormatting";
 import { createTextColorPlugin } from "../plugins/colors";
 import { createFontSizePlugin } from "../plugins/fontSize";
-import { createAlignmentPlugin } from "../plugins/alignment";
-import { createAdvancedLinkPlugin, LinkCustomField } from "../plugins/linkDialog";
-import { tablePlugin } from "../plugins/table";
 import { createImagePlugin } from "../plugins/image";
+import {
+    createAdvancedLinkPlugin,
+    LinkCustomField,
+} from "../plugins/linkDialog";
+import { tablePlugin } from "../plugins/table";
+import { Plugin } from "../types";
 
 /* ======================================================================
    EditorSettings — matches the Hendriks settings object 1:1
@@ -80,8 +83,22 @@ export const defaultEditorSettings: EditorSettings = {
         check: true,
         typography: ["h1", "h2", "h3", "h4", "h5", "h6"],
         colors: [
-            "#000000", "#434343", "#666666", "#999999", "#b7b7b7", "#cccccc", "#d9d9d9", "#ffffff",
-            "#ff0000", "#ff9900", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#9900ff", "#ff00ff",
+            "#000000",
+            "#434343",
+            "#666666",
+            "#999999",
+            "#b7b7b7",
+            "#cccccc",
+            "#d9d9d9",
+            "#ffffff",
+            "#ff0000",
+            "#ff9900",
+            "#ffff00",
+            "#00ff00",
+            "#00ffff",
+            "#0000ff",
+            "#9900ff",
+            "#ff00ff",
         ],
         fontSize: true,
         alignment: ["left", "center", "right", "justify", "outdent", "indent"],
@@ -124,10 +141,17 @@ export interface BuildPluginsOptions {
  */
 export function buildPluginsFromSettings(
     settings: EditorSettings = defaultEditorSettings,
-    options: BuildPluginsOptions = {}
+    options: BuildPluginsOptions = {},
 ): Plugin[] {
     const fmt = settings.format ?? {};
     const plugins: Plugin[] = [];
+
+    // All format.* boolean flags are opt-out: a flag is enabled unless
+    // explicitly set to false. Flags driven by an array (typography, colors,
+    // alignment) require a non-empty array to be enabled. This matches the
+    // intent of defaultEditorSettings (which sets everything to true) and
+    // makes partial settings objects predictable.
+    const enabled = (v: boolean | undefined) => v !== false;
 
     // Always: Undo / Redo
     plugins.push(undoPlugin);
@@ -142,20 +166,20 @@ export function buildPluginsFromSettings(
             quote: fmt.quote,
             codeBlock: fmt.codeBlock,
             check: fmt.check,
-        })
+        }),
     );
 
     // Font size
-    if (fmt.fontSize) {
+    if (enabled(fmt.fontSize)) {
         const sizes = options.fontSizes ?? [12, 14, 16, 18, 20, 24, 28, 32];
         plugins.push(createFontSizePlugin(sizes));
     }
 
     // Inline formatting
-    if (fmt.bold !== false) plugins.push(boldPlugin);
-    if (fmt.italic !== false) plugins.push(italicPlugin);
-    if (fmt.underline !== false) plugins.push(underlinePlugin);
-    if (fmt.strikethrough) plugins.push(strikethroughPlugin);
+    if (enabled(fmt.bold)) plugins.push(boldPlugin);
+    if (enabled(fmt.italic)) plugins.push(italicPlugin);
+    if (enabled(fmt.underline)) plugins.push(underlinePlugin);
+    if (enabled(fmt.strikethrough)) plugins.push(strikethroughPlugin);
 
     // Link
     if (settings.link?.external || settings.link?.internal) {
@@ -163,7 +187,7 @@ export function buildPluginsFromSettings(
             createAdvancedLinkPlugin({
                 enableTarget: true,
                 customFields: options.linkCustomFields,
-            })
+            }),
         );
     }
 
@@ -173,12 +197,12 @@ export function buildPluginsFromSettings(
     }
 
     // Extra inline formatting (code, subscript, superscript)
-    if (fmt.code) plugins.push(codeInlinePlugin);
-    if (fmt.subscript) plugins.push(subscriptPlugin);
-    if (fmt.superscript) plugins.push(superscriptPlugin);
+    if (enabled(fmt.code)) plugins.push(codeInlinePlugin);
+    if (enabled(fmt.subscript)) plugins.push(subscriptPlugin);
+    if (enabled(fmt.superscript)) plugins.push(superscriptPlugin);
 
     // Horizontal rule
-    if (fmt.horizontalRule) plugins.push(horizontalRulePlugin);
+    if (enabled(fmt.horizontalRule)) plugins.push(horizontalRulePlugin);
 
     // Table
     if (settings.table?.enabled) {

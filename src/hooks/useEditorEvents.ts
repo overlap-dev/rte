@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { HISTORY_DEBOUNCE_MS } from "../constants";
 import { EditorContent } from "../types";
-import { ensureAllCheckboxes } from "../utils/checkbox";
+import { handleAutoLink } from "../utils/autoLink";
 import { domToContent } from "../utils/content";
 import { HistoryManager } from "../utils/history";
-import { handleAutoLink } from "../utils/autoLink";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
 import { handleMarkdownShortcut } from "../utils/markdownShortcuts";
 import { serializeSelection } from "../utils/selection";
@@ -58,11 +57,23 @@ export function useEditorEvents({
             }, 0);
         };
 
+        // Snapshot helper for handlers that mutate the DOM directly
+        // (autoLink, markdownShortcuts) so Undo can step back to the
+        // pre-conversion text instead of skipping past it.
+        const pushHistoryNow = () => {
+            const content = domToContent(editor);
+            const sel = serializeSelection(editor);
+            historyRef.current.push(content, sel);
+        };
+
         const handleKeyDown = (e: KeyboardEvent) => {
             const isModifierPressed = e.metaKey || e.ctrlKey;
 
             // Markdown-style shortcuts (e.g., # + space → heading)
-            if (!isModifierPressed && handleMarkdownShortcut(editor, e)) {
+            if (
+                !isModifierPressed &&
+                handleMarkdownShortcut(editor, e, pushHistoryNow)
+            ) {
                 setTimeout(() => {
                     if (!mountedRef.current) return;
                     const content = domToContent(editor);
@@ -72,19 +83,13 @@ export function useEditorEvents({
             }
 
             // Exit code block: Enter on empty last line escapes <pre>
-            if (
-                e.key === "Enter" &&
-                !e.shiftKey &&
-                !isModifierPressed
-            ) {
+            if (e.key === "Enter" && !e.shiftKey && !isModifierPressed) {
                 const sel = window.getSelection();
                 if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
                     const range = sel.getRangeAt(0);
                     const node = range.startContainer;
                     const pre = (
-                        node instanceof HTMLElement
-                            ? node
-                            : node.parentElement
+                        node instanceof HTMLElement ? node : node.parentElement
                     )?.closest("pre");
 
                     if (pre && pre.lastChild) {
@@ -98,8 +103,7 @@ export function useEditorEvents({
                             node === lastChild &&
                             range.startOffset ===
                                 (node.textContent?.length ?? 0);
-                        const isAtEnd =
-                            cursorInPre || cursorAtEndOfLastText;
+                        const isAtEnd = cursorInPre || cursorAtEndOfLastText;
 
                         const lastIsBr =
                             lastChild instanceof HTMLElement &&
@@ -117,25 +121,19 @@ export function useEditorEvents({
                                 node.nodeType === Node.TEXT_NODE &&
                                 node.textContent
                             ) {
-                                node.textContent =
-                                    node.textContent.replace(/\n$/, "");
+                                node.textContent = node.textContent.replace(
+                                    /\n$/,
+                                    "",
+                                );
                             }
 
-                            if (
-                                !pre.textContent &&
-                                !pre.querySelector("br")
-                            ) {
-                                pre.appendChild(
-                                    document.createElement("br")
-                                );
+                            if (!pre.textContent && !pre.querySelector("br")) {
+                                pre.appendChild(document.createElement("br"));
                             }
 
                             const p = document.createElement("p");
                             p.appendChild(document.createElement("br"));
-                            pre.parentNode?.insertBefore(
-                                p,
-                                pre.nextSibling
-                            );
+                            pre.parentNode?.insertBefore(p, pre.nextSibling);
 
                             const newRange = document.createRange();
                             newRange.setStart(p, 0);
@@ -144,12 +142,8 @@ export function useEditorEvents({
                             sel.addRange(newRange);
 
                             const content = domToContent(editor);
-                            const serializedSel =
-                                serializeSelection(editor);
-                            historyRef.current.push(
-                                content,
-                                serializedSel
-                            );
+                            const serializedSel = serializeSelection(editor);
+                            historyRef.current.push(content, serializedSel);
                             notifyChange(content);
                             return;
                         }
@@ -159,7 +153,7 @@ export function useEditorEvents({
 
             // Auto-link: convert URLs to <a> tags on space/enter
             if (!isModifierPressed && (e.key === " " || e.key === "Enter")) {
-                handleAutoLink(editor, e);
+                handleAutoLink(editor, e, pushHistoryNow);
             }
 
             // Checkbox Enter: create new checkbox item
@@ -232,10 +226,9 @@ export function useEditorEvents({
                 // Find and click the link button in the toolbar
                 const editorContainer = editor.closest(".rte-container");
                 if (editorContainer) {
-                    const linkBtn =
-                        editorContainer.querySelector(
-                            'button[aria-label="Link"], button[aria-label="Insert Link"]'
-                        ) as HTMLButtonElement | null;
+                    const linkBtn = editorContainer.querySelector(
+                        'button[aria-label="Link"], button[aria-label="Insert Link"]',
+                    ) as HTMLButtonElement | null;
                     if (linkBtn) linkBtn.click();
                 }
                 return;
@@ -264,16 +257,30 @@ export function useEditorEvents({
 
                 if (!e.shiftKey) {
                     switch (e.key.toLowerCase()) {
-                        case "b": command = "bold"; break;
-                        case "i": command = "italic"; break;
-                        case "u": command = "underline"; break;
-                        case "e": command = "code"; break;
+                        case "b":
+                            command = "bold";
+                            break;
+                        case "i":
+                            command = "italic";
+                            break;
+                        case "u":
+                            command = "underline";
+                            break;
+                        case "e":
+                            command = "code";
+                            break;
                     }
                 } else {
                     switch (e.key.toLowerCase()) {
-                        case "x": command = "strikeThrough"; break;
-                        case "7": command = "insertOrderedList"; break;
-                        case "8": command = "insertUnorderedList"; break;
+                        case "x":
+                            command = "strikeThrough";
+                            break;
+                        case "7":
+                            command = "insertOrderedList";
+                            break;
+                        case "8":
+                            command = "insertUnorderedList";
+                            break;
                     }
                 }
 
@@ -300,7 +307,10 @@ export function useEditorEvents({
                                 const parent = existingCode.parentNode;
                                 if (parent) {
                                     while (existingCode.firstChild) {
-                                        parent.insertBefore(existingCode.firstChild, existingCode);
+                                        parent.insertBefore(
+                                            existingCode.firstChild,
+                                            existingCode,
+                                        );
                                     }
                                     parent.removeChild(existingCode);
                                 }

@@ -12,9 +12,17 @@
  *   ---              → Horizontal rule (<hr>)
  */
 
+/**
+ * Detect markdown patterns at the start of a block and apply the corresponding
+ * format. Returns true if a shortcut was handled.
+ *
+ * @param pushHistory Optional callback invoked just before mutating the DOM so
+ *                    Undo can step back to the pre-conversion text.
+ */
 export function handleMarkdownShortcut(
     editor: HTMLElement,
     e: KeyboardEvent,
+    pushHistory?: () => void,
 ): boolean {
     if (e.key !== " " && e.key !== "Enter") return false;
 
@@ -56,6 +64,7 @@ export function handleMarkdownShortcut(
         if (headingMatch) {
             const level = headingMatch[1].length;
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, offset);
             document.execCommand("formatBlock", false, `h${level}`);
             return true;
@@ -64,6 +73,7 @@ export function handleMarkdownShortcut(
         // Bullet list: - or *
         if (textBeforeCursor === "-" || textBeforeCursor === "*") {
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, offset);
             document.execCommand("insertUnorderedList");
             return true;
@@ -72,6 +82,7 @@ export function handleMarkdownShortcut(
         // Numbered list: 1.
         if (textBeforeCursor === "1.") {
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, offset);
             document.execCommand("insertOrderedList");
             return true;
@@ -80,6 +91,7 @@ export function handleMarkdownShortcut(
         // Blockquote: >
         if (textBeforeCursor === ">") {
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, offset);
             document.execCommand("formatBlock", false, "blockquote");
             return true;
@@ -88,6 +100,7 @@ export function handleMarkdownShortcut(
         // Checkbox list: []
         if (textBeforeCursor === "[]") {
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, offset);
             // Insert a checkbox list using the same approach as blockFormat
             document.execCommand("insertUnorderedList");
@@ -122,6 +135,7 @@ export function handleMarkdownShortcut(
         // Code block: ```
         if (blockTextBeforeCursor === "```" || textBeforeCursor === "```") {
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, textBeforeCursor.length);
             document.execCommand("formatBlock", false, "pre");
             return true;
@@ -130,6 +144,7 @@ export function handleMarkdownShortcut(
         // Horizontal rule: ---
         if (blockTextBeforeCursor === "---" || textBeforeCursor === "---") {
             e.preventDefault();
+            pushHistory?.();
             clearBlockText(textNode, textBeforeCursor.length);
             // Remove the block contents and insert an HR
             if (blockEl.parentNode) {

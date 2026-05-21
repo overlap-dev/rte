@@ -18,36 +18,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
     useEffect(() => {
         setIsClient(true);
-        const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+        if (typeof document === "undefined") return;
 
-        const handleSelectionChange = () => {
-            setUpdateTrigger((prev) => prev + 1);
+        // selectionchange already fires for both mouse and keyboard selection
+        // updates; mouseup/keyup were redundant and caused 2-3 re-renders per
+        // click. requestAnimationFrame coalesces bursts (e.g. drag-select)
+        // into a single render per frame.
+        let rafId: number | null = null;
+        const scheduleRender = () => {
+            if (rafId !== null) return;
+            rafId = requestAnimationFrame(() => {
+                rafId = null;
+                setUpdateTrigger((prev) => prev + 1);
+            });
         };
 
-        const handleMouseUp = () => {
-            timeoutIds.push(setTimeout(handleSelectionChange, 10));
-        };
-
-        const handleKeyUp = () => {
-            timeoutIds.push(setTimeout(handleSelectionChange, 10));
-        };
-
-        if (typeof document !== 'undefined') {
-            document.addEventListener("selectionchange", handleSelectionChange);
-            document.addEventListener("mouseup", handleMouseUp);
-            document.addEventListener("keyup", handleKeyUp);
-        }
+        document.addEventListener("selectionchange", scheduleRender);
 
         return () => {
-            timeoutIds.forEach(clearTimeout);
-            if (typeof document !== 'undefined') {
-                document.removeEventListener(
-                    "selectionchange",
-                    handleSelectionChange,
-                );
-                document.removeEventListener("mouseup", handleMouseUp);
-                document.removeEventListener("keyup", handleKeyUp);
-            }
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            document.removeEventListener("selectionchange", scheduleRender);
         };
     }, []);
 
@@ -60,13 +50,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             } else if (plugin.command) {
                 editorAPI.executeCommand(plugin.command);
             }
-            setTimeout(() => setUpdateTrigger((prev) => prev + 1), 50);
+            // Re-render on the next frame so plugin isActive() / getCurrentValue()
+            // reflect the post-command DOM. The selectionchange listener also
+            // fires for most commands, but not for ones that don't move the
+            // caret (e.g. format toggles on a collapsed selection).
+            requestAnimationFrame(() => setUpdateTrigger((prev) => prev + 1));
         }
     };
 
     const leftPlugins = plugins.filter((p) => p.name !== "clearFormatting");
     const clearFormattingPlugin = plugins.find(
-        (p) => p.name === "clearFormatting"
+        (p) => p.name === "clearFormatting",
     );
 
     // Roving tabindex keyboard navigation (ARIA toolbar pattern)
@@ -80,20 +74,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             return;
         }
 
-        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+        if (
+            e.key !== "ArrowLeft" &&
+            e.key !== "ArrowRight" &&
+            e.key !== "Home" &&
+            e.key !== "End"
+        )
+            return;
 
         const toolbar = toolbarRef.current;
         if (!toolbar) return;
 
         const buttons = Array.from(
             toolbar.querySelectorAll<HTMLButtonElement>(
-                "button:not(:disabled)"
-            )
+                "button:not(:disabled)",
+            ),
         );
         if (buttons.length === 0) return;
 
         const currentIndex = buttons.indexOf(
-            document.activeElement as HTMLButtonElement
+            document.activeElement as HTMLButtonElement,
         );
         if (currentIndex === -1) return;
 
@@ -105,7 +105,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 nextIndex = (currentIndex + 1) % buttons.length;
                 break;
             case "ArrowLeft":
-                nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+                nextIndex =
+                    (currentIndex - 1 + buttons.length) % buttons.length;
                 break;
             case "Home":
                 nextIndex = 0;
@@ -134,16 +135,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 {leftPlugins.map((plugin) => {
                     if (!plugin.renderButton) return null;
 
-                    const isActive = isClient && plugin.isActive
-                        ? plugin.isActive(editorAPI)
-                        : false;
-                    const canExecute = isClient && plugin.canExecute
-                        ? plugin.canExecute(editorAPI)
-                        : true;
+                    const isActive =
+                        isClient && plugin.isActive
+                            ? plugin.isActive(editorAPI)
+                            : false;
+                    const canExecute =
+                        isClient && plugin.canExecute
+                            ? plugin.canExecute(editorAPI)
+                            : true;
 
-                    const currentValue = isClient && plugin.getCurrentValue
-                        ? plugin.getCurrentValue(editorAPI)
-                        : undefined;
+                    const currentValue =
+                        isClient && plugin.getCurrentValue
+                            ? plugin.getCurrentValue(editorAPI)
+                            : undefined;
 
                     const buttonProps: ButtonProps & { [key: string]: any } = {
                         isActive,
@@ -167,12 +171,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <div className="rte-toolbar-right">
                     <div className="rte-toolbar-divider" />
                     {(() => {
-                        const isActive = isClient && clearFormattingPlugin.isActive
-                            ? clearFormattingPlugin.isActive(editorAPI)
-                            : false;
-                        const canExecute = isClient && clearFormattingPlugin.canExecute
-                            ? clearFormattingPlugin.canExecute(editorAPI)
-                            : true;
+                        const isActive =
+                            isClient && clearFormattingPlugin.isActive
+                                ? clearFormattingPlugin.isActive(editorAPI)
+                                : false;
+                        const canExecute =
+                            isClient && clearFormattingPlugin.canExecute
+                                ? clearFormattingPlugin.canExecute(editorAPI)
+                                : true;
 
                         const buttonProps: ButtonProps & {
                             [key: string]: any;
@@ -187,7 +193,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                         return (
                             <React.Fragment key={clearFormattingPlugin.name}>
                                 {clearFormattingPlugin.renderButton(
-                                    buttonProps
+                                    buttonProps,
                                 )}
                             </React.Fragment>
                         );

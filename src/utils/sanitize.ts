@@ -37,12 +37,7 @@ const REMOVE_TAGS = new Set([
 const REMOVE_ATTRS_PATTERN = /^on|^data-(?!(attachment-id|placeholder)$)/i;
 
 /** Specific dangerous attribute names. */
-const REMOVE_ATTRS = new Set([
-    "srcdoc",
-    "formaction",
-    "xlink:href",
-    "ping",
-]);
+const REMOVE_ATTRS = new Set(["srcdoc", "formaction", "xlink:href", "ping"]);
 
 /** Allowed URL schemes for href/src attributes. */
 const ALLOWED_SCHEMES = /^(https?:|mailto:|tel:|#|\/(?!\/))/i;
@@ -61,6 +56,27 @@ export function isUrlSafe(url: string): boolean {
     if (cleaned.startsWith("//")) return false;
     // Must match an allowed scheme or be a relative path
     return ALLOWED_SCHEMES.test(cleaned);
+}
+
+/**
+ * Single source of truth for image src validation.
+ *
+ * Allows:
+ *   - http(s), mailto, tel, relative paths (via isUrlSafe)
+ *   - data:image/* (base64 / utf8) EXCEPT data:image/svg* which can carry
+ *     <script> / xlink:href="javascript:..." payloads.
+ *
+ * Mirrors the policy enforced by sanitizeAttributes() so that all image
+ * entry points (paste, drop, upload, insertImage command, modal URL input,
+ * setContent JSON) cannot be tricked into accepting an SVG data URI.
+ */
+export function isImageSrcSafe(src: string): boolean {
+    if (!src) return false;
+    const cleaned = src.trim().toLowerCase();
+    if (cleaned.startsWith("data:image/")) {
+        return !cleaned.startsWith("data:image/svg");
+    }
+    return isUrlSafe(src);
 }
 
 /**
@@ -92,7 +108,13 @@ function sanitizeAttributes(el: Element): void {
         }
 
         // Validate URL attributes
-        if (name === "href" || name === "src" || name === "action" || name === "cite" || name === "poster") {
+        if (
+            name === "href" ||
+            name === "src" ||
+            name === "action" ||
+            name === "cite" ||
+            name === "poster"
+        ) {
             const value = attr.value.trim();
             if (value) {
                 // Allow data:image/* for img src (matches contentToDOM behavior),
@@ -110,7 +132,9 @@ function sanitizeAttributes(el: Element): void {
         }
 
         // Remove dangerous URI schemes in any attribute value
-        const lowerValue = attr.value.toLowerCase().replace(/[\x00-\x1f\x7f\s]/g, "");
+        const lowerValue = attr.value
+            .toLowerCase()
+            .replace(/[\x00-\x1f\x7f\s]/g, "");
         if (
             lowerValue.includes("javascript:") ||
             lowerValue.includes("vbscript:") ||
