@@ -13,6 +13,7 @@
     "scripts": {
         "build": "rollup -c",
         "dev": "rollup -c -w",
+        "test:markdown": "npm run build && node tools/scripts/testMarkdown.mjs",
         "prepublishOnly": "npm run build",
         "bump": "node tools/scripts/bumpVersion.mjs",
         "publish:package": "node tools/scripts/publish.mjs"
@@ -36,9 +37,6 @@
     "peerDependencies": {
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0"
-    },
-    "dependencies": {
-        "marked": "^18.0.4"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^25.0.7",
