@@ -32,6 +32,7 @@ import {
     domToContent,
     htmlToContent,
 } from "../utils/content";
+import { findClosestListItem } from "../utils/dom";
 import { HistoryManager } from "../utils/history";
 import { indentListItem, outdentListItem } from "../utils/listIndent";
 import { isImageSrcSafe, sanitizeHtml } from "../utils/sanitize";
@@ -43,6 +44,101 @@ import { buildPluginsFromSettings } from "../utils/settings";
 import { FloatingToolbar } from "./FloatingToolbar";
 import { LinkTooltip } from "./LinkTooltip";
 import { Toolbar } from "./Toolbar";
+
+/**
+ * When pasting list content while the caret sits inside a list item, merge the
+ * pasted <li>s as siblings into the surrounding list instead of dropping a
+ * whole <ul>/<ol> inside the current <li>. The naive insert nests the list
+ * (<li><ul><li>…), which renders duplicate bullets/numbers and stacked
+ * indentation.
+ *
+ * Returns true when it handled the paste (the caller must not insert the
+ * fragment again); false to fall back to the default insertion path.
+ */
+function tryMergeListPaste(
+    range: Range,
+    tempDiv: HTMLElement,
+    editor: HTMLElement,
+): boolean {
+    const anchorLi = findClosestListItem(range.startContainer);
+    if (!anchorLi || !editor.contains(anchorLi)) return false;
+
+    const parentList = anchorLi.parentElement;
+    if (
+        !parentList ||
+        (parentList.tagName !== "UL" && parentList.tagName !== "OL")
+    ) {
+        return false;
+    }
+
+    // The split below needs the caret to live inside the anchor item.
+    if (
+        anchorLi !== range.startContainer &&
+        !anchorLi.contains(range.startContainer)
+    ) {
+        return false;
+    }
+
+    // Only merge when every top-level pasted node is a list; mixed content
+    // keeps the default behavior.
+    const topNodes = Array.from(tempDiv.childNodes).filter(
+        (n) => n.nodeType === Node.ELEMENT_NODE,
+    ) as HTMLElement[];
+    if (
+        topNodes.length === 0 ||
+        !topNodes.every((n) => n.tagName === "UL" || n.tagName === "OL")
+    ) {
+        return false;
+    }
+
+    // Collect the pasted list items in document order.
+    const items: HTMLLIElement[] = [];
+    topNodes.forEach((list) => {
+        Array.from(list.children).forEach((child) => {
+            if (child.tagName === "LI") items.push(child as HTMLLIElement);
+        });
+    });
+    if (items.length === 0) return false;
+
+    // Drop any selected content, then split the anchor item at the caret:
+    // everything after the caret is re-attached to the last pasted item.
+    range.deleteContents();
+    const anchorWasEmpty = !(anchorLi.textContent || "").trim();
+
+    const afterRange = document.createRange();
+    afterRange.setStart(range.startContainer, range.startOffset);
+    afterRange.setEnd(anchorLi, anchorLi.childNodes.length);
+    const afterFrag = afterRange.extractContents();
+
+    let ref: Element = anchorLi;
+    items.forEach((li) => {
+        parentList.insertBefore(li, ref.nextSibling);
+        ref = li;
+    });
+    const lastPasted = ref as HTMLLIElement;
+
+    // Caret goes to the end of the pasted content, before any trailing text.
+    const caretAfter = lastPasted.lastChild;
+    if ((afterFrag.textContent || "").length > 0 || afterFrag.childNodes.length) {
+        lastPasted.appendChild(afterFrag);
+    }
+    if (anchorWasEmpty) anchorLi.remove();
+
+    const caretRange = document.createRange();
+    if (caretAfter) {
+        caretRange.setStartAfter(caretAfter);
+    } else {
+        caretRange.setStart(lastPasted, 0);
+    }
+    caretRange.collapse(true);
+
+    const selection = window.getSelection();
+    if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(caretRange);
+    }
+    return true;
+}
 
 export const Editor: React.FC<EditorProps> = ({
     initialContent,
@@ -721,6 +817,14 @@ export const Editor: React.FC<EditorProps> = ({
                     );
                     const pastedText = tempDiv.innerText || "";
                     if (wouldExceedMaxLength(pastedText)) return;
+
+                    // List-aware paste: merge pasted <li>s into the current
+                    // list instead of nesting a whole list inside the item.
+                    if (tryMergeListPaste(range, tempDiv, editor)) {
+                        ensureAllCheckboxes(editor);
+                        notifyChange(domToContent(editor));
+                        return;
+                    }
 
                     range.deleteContents();
 
