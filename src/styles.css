@@ -1116,6 +1116,91 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   Inline SVG Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 8px auto;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.rte-svg:hover {
+    outline: 2px solid var(--rte-primary-color);
+    outline-offset: 2px;
+}
+
+.rte-container-readonly .rte-svg {
+    cursor: default;
+}
+
+.rte-container-readonly .rte-svg:hover {
+    outline: none;
+}
+
+.rte-svg-modal {
+    max-width: 640px;
+}
+
+.rte-svg-source-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--rte-padding-sm);
+}
+
+.rte-svg-source-section label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--rte-text-color);
+}
+
+.rte-svg-source-input {
+    width: 100%;
+    min-height: 160px;
+    padding: var(--rte-padding-md) var(--rte-padding-lg);
+    border: 1px solid var(--rte-border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    line-height: 1.5;
+    color: var(--rte-text-color);
+    background: var(--rte-content-bg);
+    resize: vertical;
+    transition: all 0.15s ease;
+}
+
+.rte-svg-source-input:focus {
+    outline: none;
+    border-color: var(--rte-primary-color);
+    box-shadow: 0 0 0 3px var(--rte-primary-light);
+}
+
+.rte-svg-error {
+    padding: var(--rte-padding-md) var(--rte-padding-lg);
+    border-radius: 6px;
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+    font-size: 13px;
+}
+
+.rte-svg-preview {
+    display: flex;
+    justify-content: center;
+    padding: var(--rte-padding-lg);
+    background: var(--rte-toolbar-bg);
+    border-radius: var(--rte-border-radius);
+}
+
+.rte-svg-preview-canvas svg {
+    max-width: 100%;
+    max-height: 200px;
+    height: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    Inline code, sub, sup styles
    ═══════════════════════════════════════════════════════════════════ */
 

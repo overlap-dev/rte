@@ -16,6 +16,7 @@ import {
 } from "../plugins/colors";
 import { createFontSizePlugin } from "../plugins/fontSize";
 import { createImagePlugin } from "../plugins/image";
+import { createSvgPlugin, RTE_EDIT_SVG_EVENT } from "../plugins/svg";
 import { EditorAPI, EditorContent, EditorProps } from "../types";
 import { ensureAllCheckboxes } from "../utils/checkbox";
 import {
@@ -40,6 +41,7 @@ import {
     restoreSerializedSelection,
     serializeSelection,
 } from "../utils/selection";
+import { createSvgElementFromMarkup } from "../utils/sanitizeSvg";
 import { buildPluginsFromSettings } from "../utils/settings";
 import { FloatingToolbar } from "./FloatingToolbar";
 import { LinkTooltip } from "./LinkTooltip";
@@ -170,6 +172,8 @@ export const Editor: React.FC<EditorProps> = ({
     const historyRef = useRef<HistoryManager>(new HistoryManager());
     const isUpdatingRef = useRef(false);
     const mountedRef = useRef(true);
+    // The inline SVG most recently clicked for editing; target of "updateSvg".
+    const editingSvgRef = useRef<Element | null>(null);
 
     // Mirror the editor DOM node into state so descendants that need to
     // reactively bind to it (FloatingToolbar, LinkTooltip) re-render once the
@@ -272,6 +276,7 @@ export const Editor: React.FC<EditorProps> = ({
         }
 
         allPlugins.push(createImagePlugin(onImageUpload));
+        allPlugins.push(createSvgPlugin());
 
         return allPlugins;
     }, [
@@ -379,6 +384,34 @@ export const Editor: React.FC<EditorProps> = ({
                     mountedRef,
                     notifyChange,
                 );
+            }
+
+            if (command === "insertSvg" && value) {
+                if (wouldExceedMaxLength("")) return false;
+                return handleInsertSvg(
+                    editor,
+                    value,
+                    isUpdatingRef,
+                    historyRef,
+                    mountedRef,
+                    notifyChange,
+                );
+            }
+
+            if (command === "updateSvg" && value) {
+                const target = editingSvgRef.current;
+                if (!target || !editor.contains(target)) return false;
+                const newEl = createSvgElementFromMarkup(value);
+                if (!newEl) return false;
+
+                const beforeContent = domToContent(editor);
+                const beforeSel = serializeSelection(editor);
+                historyRef.current.push(beforeContent, beforeSel);
+
+                target.replaceWith(newEl);
+                editingSvgRef.current = newEl;
+                notifyChange(domToContent(editor));
+                return true;
             }
 
             // General commands via document.execCommand.
@@ -631,6 +664,34 @@ export const Editor: React.FC<EditorProps> = ({
             editor.removeEventListener("blur", handleBlur);
         };
     }, [onFocus, onBlur]);
+
+    // --- Click-to-edit inline SVG ---
+    useEffect(() => {
+        if (readOnly) return;
+        const editor = editorRef.current;
+        if (!editor) return;
+        const handleClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement | null;
+            const svg = target?.closest?.(".rte-svg") as HTMLElement | null;
+            if (!svg || !editor.contains(svg)) return;
+            editingSvgRef.current = svg;
+            // Present clean source in the editor: hide the internal attributes
+            // the editor adds when embedding the SVG.
+            const clone = svg.cloneNode(true) as Element;
+            clone.classList.remove("rte-svg");
+            if (clone.getAttribute("class") === "")
+                clone.removeAttribute("class");
+            clone.removeAttribute("contenteditable");
+            // Scope the event to this editor's API so other editors ignore it.
+            document.dispatchEvent(
+                new CustomEvent(RTE_EDIT_SVG_EVENT, {
+                    detail: { api: editorAPI, markup: clone.outerHTML },
+                }),
+            );
+        };
+        editor.addEventListener("click", handleClick);
+        return () => editor.removeEventListener("click", handleClick);
+    }, [editorAPI, readOnly, editorEl]);
 
     // --- Max Length enforcement ---
     useEffect(() => {
@@ -960,6 +1021,48 @@ export const Editor: React.FC<EditorProps> = ({
         </div>
     );
 };
+
+// --- Helper: Insert inline SVG ---
+function handleInsertSvg(
+    editor: HTMLElement,
+    markup: string,
+    isUpdatingRef: { current: boolean },
+    historyRef: { current: HistoryManager },
+    mountedRef: { current: boolean },
+    notifyChange: (content: EditorContent) => void,
+): boolean {
+    const svg = createSvgElementFromMarkup(markup);
+    if (!svg) return false;
+
+    let selection = window.getSelection();
+    if (document.activeElement !== editor) {
+        editor.focus();
+    }
+    selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+        editor.appendChild(svg);
+    } else {
+        const range = selection.getRangeAt(0);
+        // Only insert at the caret when it lives inside the editor; otherwise
+        // append so the SVG never lands in unrelated DOM.
+        if (editor.contains(range.commonAncestorContainer)) {
+            range.deleteContents();
+            range.insertNode(svg);
+        } else {
+            editor.appendChild(svg);
+        }
+    }
+
+    const newRange = document.createRange();
+    newRange.setStartAfter(svg);
+    newRange.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(newRange);
+
+    saveAndNotify(editor, isUpdatingRef, historyRef, mountedRef, notifyChange);
+    return true;
+}
 
 // --- Helper: Insert Image ---
 function handleInsertImage(

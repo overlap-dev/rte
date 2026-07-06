@@ -238,6 +238,9 @@ const demoSettings: EditorSettings = {
     image: {
         enabled: true,
     },
+    svg: {
+        enabled: true,
+    },
 };
 
 /* ==========================================================================

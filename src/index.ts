@@ -15,6 +15,7 @@ export * from "./plugins/headings";
 export * from "./plugins/image";
 export * from "./plugins/linkDialog";
 export * from "./plugins/optional";
+export * from "./plugins/svg";
 export * from "./plugins/table";
 
 // Types
@@ -40,6 +41,7 @@ export * from "./utils/stateReflection";
 
 // Sanitization
 export { isImageSrcSafe, isUrlSafe, sanitizeHtml } from "./utils/sanitize";
+export { createSvgElementFromMarkup, sanitizeSvg } from "./utils/sanitizeSvg";
 
 // Markdown bridge
 export {

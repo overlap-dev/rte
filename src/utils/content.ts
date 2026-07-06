@@ -3,6 +3,7 @@ import { EditorContent, EditorNode } from "../types";
 import { ensureAllCheckboxes } from "./checkbox";
 import { isCheckboxList } from "./dom";
 import { isImageSrcSafe, isUrlSafe, sanitizeHtml } from "./sanitize";
+import { createSvgElementFromMarkup, sanitizeSvg } from "./sanitizeSvg";
 
 /** Allowed tag names that contentToDOM may create from JSON. */
 const ALLOWED_CONTENT_TAGS = new Set([
@@ -157,6 +158,15 @@ export function domToContent(element: HTMLElement): EditorContent {
                 attributes:
                     Object.keys(attributes).length > 0 ? attributes : undefined,
             };
+        }
+
+        // Inline SVG: store the sanitized markup so it survives the JSON
+        // round-trip. The subtree is not serialized as EditorNodes because
+        // SVG uses many tags/attributes outside the editor's content model.
+        if (tagName === "svg") {
+            const markup = sanitizeSvg(el.outerHTML);
+            if (!markup) return null;
+            return { type: "svg", attributes: { markup } };
         }
 
         // Table elements
@@ -526,6 +536,14 @@ export function contentToDOM(
             }
             img.className = "rte-image";
             return img;
+        }
+
+        if (node.type === "svg") {
+            const markup = node.attributes?.markup;
+            const svg = markup ? createSvgElementFromMarkup(markup) : null;
+            // Fall back to an empty text node when the markup is missing or
+            // unsafe, so the caller always receives a valid Node.
+            return svg ?? document.createTextNode("");
         }
 
         const tagMap: Record<string, string> = {

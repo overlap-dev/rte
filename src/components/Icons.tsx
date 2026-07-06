@@ -570,6 +570,22 @@ export const ContentCopyIcon: React.FC<IconProps> = ({
     </svg>
 );
 
+export const SvgShapeIcon: React.FC<IconProps> = ({
+    width = 18,
+    height = 18,
+    className,
+}) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M2 2v6h1.97v8.04H2V22h6v-1.96h8.04V22H22v-6h-1.96V7.96H22V2h-6v1.96H7.96V2H2zm4 2v2H4V4h2zm14 0v2h-2V4h2zM7.96 5.96h8.04v2h1.96V16h-2v1.96H7.96V16h-2V7.96h2v-2zM4 18h2v2H4v-2zm14 0h2v2h-2v-2z" />
+    </svg>
+);
+
 const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:format-bold": BoldIcon,
     "mdi:format-italic": ItalicIcon,
@@ -605,6 +621,7 @@ const iconMap: Record<string, React.FC<IconProps>> = {
     "mdi:minus": HorizontalRuleIcon,
     "mdi:open-in-new": OpenInNewIcon,
     "mdi:content-copy": ContentCopyIcon,
+    "mdi:vector-square": SvgShapeIcon,
 };
 
 export const Icon: React.FC<{

@@ -7,6 +7,7 @@ import {
     orderedListPlugin,
     unorderedListPlugin,
 } from "../../src/plugins/optional.tsx";
+import { createSvgPlugin } from "../../src/plugins/svg.tsx";
 import type { EditorAPI, EditorContent } from "../../src/types.ts";
 
 export default function EditorIsland() {
@@ -20,6 +21,7 @@ export default function EditorIsland() {
         blockquotePlugin,
         unorderedListPlugin,
         orderedListPlugin,
+        createSvgPlugin(),
     ];
 
     const handleImportHtml = () => {

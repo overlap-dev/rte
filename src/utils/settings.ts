@@ -22,6 +22,7 @@ import {
     createAdvancedLinkPlugin,
     LinkCustomField,
 } from "../plugins/linkDialog";
+import { createSvgPlugin } from "../plugins/svg";
 import { tablePlugin } from "../plugins/table";
 import { Plugin } from "../types";
 
@@ -61,6 +62,9 @@ export interface EditorSettings {
         enabled?: boolean;
     };
     image?: {
+        enabled?: boolean;
+    };
+    svg?: {
         enabled?: boolean;
     };
 }
@@ -111,6 +115,9 @@ export const defaultEditorSettings: EditorSettings = {
         enabled: true,
     },
     image: {
+        enabled: true,
+    },
+    svg: {
         enabled: true,
     },
 };
@@ -221,6 +228,11 @@ export function buildPluginsFromSettings(
     // Image
     if (settings.image?.enabled && options.onImageUpload) {
         plugins.push(createImagePlugin(options.onImageUpload));
+    }
+
+    // Inline SVG (no upload callback needed — markup is edited directly)
+    if (settings.svg?.enabled) {
+        plugins.push(createSvgPlugin());
     }
 
     // Always: Clear formatting
