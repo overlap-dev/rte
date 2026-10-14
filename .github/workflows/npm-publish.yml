@@ -20,6 +20,12 @@ jobs:
                   registry-url: "https://registry.npmjs.org"
                   cache: "npm"
 
+            # Node 22.14 ships with npm 10. Trusted publishing (OIDC) needs
+            # npm 11.5.1+. Without it the publish is anonymous and the
+            # registry answers 404 for the scoped package.
+            - name: Update npm
+              run: npm install -g npm@11
+
             - run: npm ci
 
             - name: Run build
