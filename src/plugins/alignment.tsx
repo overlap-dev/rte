@@ -1,5 +1,6 @@
 import { Dropdown } from "../components/Dropdown";
 import { EditorAPI, Plugin } from "../types";
+import { isSelectionInsideEditor } from "../utils/selection";
 
 const alignmentLabels: Record<string, string> = {
     left: "Left",
@@ -88,14 +89,21 @@ export function createAlignmentPlugin(
             const onSelect = props.onSelect as
                 | ((value: string) => void)
                 | undefined;
-            const currentValue =
-                (props.currentValue as string | undefined) ||
-                detectCurrentAlignment() ||
-                "left";
+            const editor = props.editorAPI as EditorAPI | undefined;
+            const inside =
+                !!editor && isSelectionInsideEditor(editor.getElement());
+            const currentValue = inside
+                ? (props.currentValue as string | undefined) ||
+                  detectCurrentAlignment() ||
+                  "left"
+                : undefined;
 
             return (
                 <Dropdown
-                    icon={alignmentIcons[currentValue] || "mdi:format-align-left"}
+                    icon={
+                        (currentValue && alignmentIcons[currentValue]) ||
+                        "mdi:format-align-left"
+                    }
                     label="Alignment"
                     options={options}
                     onSelect={(value) => {
@@ -106,7 +114,10 @@ export function createAlignmentPlugin(
                 />
             );
         },
-        getCurrentValue: () => detectCurrentAlignment(),
+        getCurrentValue: (editor: EditorAPI) => {
+            if (!isSelectionInsideEditor(editor.getElement())) return undefined;
+            return detectCurrentAlignment();
+        },
         execute: (_editor: EditorAPI, value?: string) => {
             if (!value) return;
             const command = alignmentCommands[value];
@@ -114,7 +125,8 @@ export function createAlignmentPlugin(
                 document.execCommand(command, false);
             }
         },
-        isActive: () => {
+        isActive: (editor: EditorAPI) => {
+            if (!isSelectionInsideEditor(editor.getElement())) return false;
             const align = detectCurrentAlignment();
             return align !== undefined && align !== "left";
         },

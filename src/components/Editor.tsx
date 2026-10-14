@@ -420,6 +420,8 @@ export const Editor: React.FC<EditorProps> = ({
                 return window.getSelection();
             },
 
+            getElement: (): HTMLElement | null => editorRef.current,
+
             getContent: (): EditorContent => {
                 const editor = editorRef.current;
                 if (!editor) return createEmptyContent();

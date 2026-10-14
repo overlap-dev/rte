@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ButtonProps, EditorAPI, Plugin } from "../types";
+import { isSelectionInsideEditor } from "../utils/selection";
 
 interface ToolbarProps {
     plugins: Plugin[];
@@ -42,6 +43,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }, []);
 
     const handlePluginClick = (plugin: Plugin, value?: string) => {
+        if (!isSelectionInsideEditor(editorAPI.getElement())) return;
+
         if (plugin.canExecute?.(editorAPI) !== false) {
             if (plugin.execute) {
                 plugin.execute(editorAPI, value);
@@ -62,6 +65,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     const clearFormattingPlugin = plugins.find(
         (p) => p.name === "clearFormatting",
     );
+    const selectionInside =
+        isClient && isSelectionInsideEditor(editorAPI.getElement());
+
+    const pluginButtonProps = (
+        plugin: Plugin,
+        onClick: () => void,
+    ): ButtonProps & { [key: string]: any } => {
+        const isActive =
+            selectionInside && plugin.isActive
+                ? plugin.isActive(editorAPI)
+                : false;
+        const canExecute = selectionInside
+            ? plugin.canExecute
+                ? plugin.canExecute(editorAPI)
+                : true
+            : false;
+        const currentValue =
+            selectionInside && plugin.getCurrentValue
+                ? plugin.getCurrentValue(editorAPI)
+                : undefined;
+
+        return {
+            isActive,
+            onClick,
+            disabled: !canExecute,
+            onSelect: (value: string) => handlePluginClick(plugin, value),
+            editorAPI,
+            currentValue,
+        };
+    };
 
     // Roving tabindex keyboard navigation (ARIA toolbar pattern)
     const handleToolbarKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -135,33 +168,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 {leftPlugins.map((plugin) => {
                     if (!plugin.renderButton) return null;
 
-                    const isActive =
-                        isClient && plugin.isActive
-                            ? plugin.isActive(editorAPI)
-                            : false;
-                    const canExecute =
-                        isClient && plugin.canExecute
-                            ? plugin.canExecute(editorAPI)
-                            : true;
-
-                    const currentValue =
-                        isClient && plugin.getCurrentValue
-                            ? plugin.getCurrentValue(editorAPI)
-                            : undefined;
-
-                    const buttonProps: ButtonProps & { [key: string]: any } = {
-                        isActive,
-                        onClick: () => handlePluginClick(plugin),
-                        disabled: !canExecute,
-                        onSelect: (value: string) =>
-                            handlePluginClick(plugin, value),
-                        editorAPI,
-                        currentValue,
-                    };
-
                     return (
                         <React.Fragment key={plugin.name}>
-                            {plugin.renderButton(buttonProps)}
+                            {plugin.renderButton(
+                                pluginButtonProps(plugin, () =>
+                                    handlePluginClick(plugin),
+                                ),
+                            )}
                         </React.Fragment>
                     );
                 })}
@@ -170,34 +183,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {clearFormattingPlugin && clearFormattingPlugin.renderButton && (
                 <div className="rte-toolbar-right">
                     <div className="rte-toolbar-divider" />
-                    {(() => {
-                        const isActive =
-                            isClient && clearFormattingPlugin.isActive
-                                ? clearFormattingPlugin.isActive(editorAPI)
-                                : false;
-                        const canExecute =
-                            isClient && clearFormattingPlugin.canExecute
-                                ? clearFormattingPlugin.canExecute(editorAPI)
-                                : true;
-
-                        const buttonProps: ButtonProps & {
-                            [key: string]: any;
-                        } = {
-                            isActive,
-                            onClick: () =>
+                    <React.Fragment key={clearFormattingPlugin.name}>
+                        {clearFormattingPlugin.renderButton(
+                            pluginButtonProps(clearFormattingPlugin, () =>
                                 handlePluginClick(clearFormattingPlugin),
-                            disabled: !canExecute,
-                            editorAPI,
-                        };
-
-                        return (
-                            <React.Fragment key={clearFormattingPlugin.name}>
-                                {clearFormattingPlugin.renderButton(
-                                    buttonProps,
-                                )}
-                            </React.Fragment>
-                        );
-                    })()}
+                            ),
+                        )}
+                    </React.Fragment>
                 </div>
             )}
         </div>

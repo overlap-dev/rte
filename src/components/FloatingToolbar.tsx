@@ -127,6 +127,8 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
 
     const isHidden = !pos.visible || leftPlugins.length === 0;
 
+    if (typeof document === "undefined") return null;
+
     return createPortal(
         <div
             ref={toolbarRef}

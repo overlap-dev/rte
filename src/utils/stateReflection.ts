@@ -1,4 +1,5 @@
 import { EditorAPI } from '../types';
+import { isSelectionInsideEditor } from './selection';
 
 /**
  * Returns the element from a node for style inspection (the node itself if it
@@ -58,6 +59,8 @@ export function getSelectedTextNodes(range: Range): Text[] {
  * share the same size (otherwise undefined → blank dropdown for mixed runs).
  */
 export function getCurrentFontSize(editor: EditorAPI): string | undefined {
+  if (!isSelectionInsideEditor(editor.getElement())) return undefined;
+
   const selection = editor.getSelection();
   if (!selection || selection.rangeCount === 0) return undefined;
 
@@ -173,6 +176,8 @@ function resolveOverSelection(
   editor: EditorAPI,
   resolve: (element: HTMLElement | null) => string | undefined,
 ): string | undefined {
+  if (!isSelectionInsideEditor(editor.getElement())) return undefined;
+
   const selection = editor.getSelection();
   if (!selection || selection.rangeCount === 0) return undefined;
 
@@ -217,6 +222,8 @@ export function getCurrentBackgroundColor(editor: EditorAPI): string | undefined
  * Reads the current heading level from the DOM at the cursor position
  */
 export function getCurrentHeading(editor: EditorAPI, availableHeadings: string[]): string | undefined {
+  if (!isSelectionInsideEditor(editor.getElement())) return undefined;
+
   const selection = editor.getSelection();
   if (!selection || selection.rangeCount === 0) return undefined;
 

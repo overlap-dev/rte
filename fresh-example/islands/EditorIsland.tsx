@@ -1,6 +1,6 @@
 import { useRef, useState } from "preact/hooks";
 import { Editor } from "../../src/components/Editor.tsx";
-import { defaultPlugins } from "../../src/plugins/index.ts";
+import { defaultPlugins } from "../../src/plugins/index.tsx";
 import {
     blockquotePlugin,
     linkPlugin,

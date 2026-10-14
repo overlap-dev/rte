@@ -1,5 +1,6 @@
 import { Dropdown } from "../components/Dropdown";
 import { EditorAPI, Plugin } from "../types";
+import { isSelectionInsideEditor } from "../utils/selection";
 import { findClosestCheckboxList } from "../utils/dom";
 
 const defaultHeadings = ["h1", "h2", "h3", "h4", "h5", "h6"];
@@ -84,6 +85,8 @@ export function createBlockFormatPlugin(
 
     /** Detects the current block format at the cursor position. */
     function detectCurrentFormat(editor: EditorAPI): string | undefined {
+        if (!isSelectionInsideEditor(editor.getElement())) return undefined;
+
         const selection = editor.getSelection();
         if (!selection || selection.rangeCount === 0) return undefined;
 

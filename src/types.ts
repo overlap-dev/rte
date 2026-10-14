@@ -32,6 +32,7 @@ export interface ButtonProps {
 export interface EditorAPI {
   executeCommand: (command: string, value?: string) => boolean;
   getSelection: () => Selection | null;
+  getElement: () => HTMLElement | null;
   getContent: () => EditorContent;
   setContent: (content: EditorContent) => void;
   insertBlock: (type: string, attributes?: Record<string, string>) => void;

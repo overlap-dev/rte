@@ -62,6 +62,22 @@ function walkPath(editor: HTMLElement, path: number[]): Node | null {
 }
 
 /**
+ * True when both ends of the window selection lie inside `editor`.
+ * A selection that starts in this editor and ends outside does not count.
+ */
+export function isSelectionInsideEditor(editor: HTMLElement | null): boolean {
+    if (!editor || typeof window === "undefined") return false;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return false;
+
+    const { anchorNode, focusNode } = selection;
+    if (!anchorNode || !focusNode) return false;
+
+    return editor.contains(anchorNode) && editor.contains(focusNode);
+}
+
+/**
  * Serialize the current window selection relative to `editor`.
  * Returns null if there is no selection or it is outside the editor.
  */
