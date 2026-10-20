@@ -19,5 +19,6 @@ Complete documentation for the @overlap/rte Rich Text Editor.
 | [Images](./images.md) | Image upload, drag & drop, paste, and URL insert |
 | [Tables](./tables.md) | Table insertion and context menu operations |
 | [Links](./links.md) | Link dialog, custom fields, auto-linking, hover tooltip |
+| [Mentions](./mentions.md) | `@` suggestion popup, data model, extracting mentioned ids |
 | [Custom Plugins](./custom-plugins.md) | How to create your own plugins |
 | [Exports](./exports.md) | Full list of everything exported from the package |

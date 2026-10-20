@@ -57,6 +57,24 @@ export interface EditorAPI {
   getTextStats: () => { characters: number; words: number };
 }
 
+/** A single suggestion / inserted mention. */
+export interface MentionItem {
+  /** Stable identifier stored in `data-mention-id` (e.g. a user id or email). */
+  id: string;
+  /** Text shown inside the editor, e.g. "Jane Doe" (the trigger is prepended automatically). */
+  label: string;
+  [key: string]: unknown;
+}
+
+export interface MentionOptions {
+  /** Character that opens the suggestion popup. Defaults to "@". */
+  trigger?: string;
+  /** Returns the suggestions for the text typed after the trigger. */
+  fetchItems: (query: string) => MentionItem[] | Promise<MentionItem[]>;
+  /** Custom renderer for a suggestion row. Defaults to the label. */
+  renderItem?: (item: MentionItem, isActive: boolean) => React.ReactNode;
+}
+
 export interface CustomRenderer {
   renderNode?: (node: EditorNode, children: React.ReactNode) => React.ReactNode;
   renderMark?: (mark: string, attributes: Record<string, string>, children: React.ReactNode) => React.ReactNode;
@@ -108,5 +126,7 @@ export interface EditorProps {
   // Content Limits
   maxLength?: number;
   showWordCount?: boolean;
+  // @Mentions
+  mentions?: MentionOptions;
 }
 

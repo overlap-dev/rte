@@ -1246,6 +1246,51 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   Mentions
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rte-mention {
+    display: inline;
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: var(--rte-primary-color);
+    background: var(--rte-primary-light);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.rte-mention-popup {
+    position: fixed;
+    z-index: 10000;
+    min-width: 180px;
+    max-width: 320px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--rte-content-bg);
+    border: 1px solid var(--rte-border-color);
+    border-radius: 6px;
+    box-shadow: var(--rte-shadow-md);
+    padding: var(--rte-padding-xs) 0;
+    font-family: var(--rte-font-family);
+    font-size: 14px;
+    color: var(--rte-text-color);
+    animation: rte-float-in 0.1s ease-out;
+}
+
+.rte-mention-item {
+    padding: var(--rte-padding-sm) var(--rte-padding-lg);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rte-mention-item-active {
+    background: var(--rte-button-hover-bg);
+    color: var(--rte-primary-color);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    Custom Color Input
    ═══════════════════════════════════════════════════════════════════ */
 

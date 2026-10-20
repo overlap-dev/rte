@@ -99,6 +99,20 @@ const [isFocused, setIsFocused] = useState(false);
 <Editor maxLength={500} showWordCount />
 ```
 
+## Mentions
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `mentions` | `MentionOptions` | — | Enables an `@` suggestion popup. See [Mentions](./mentions.md) |
+
+```tsx
+<Editor
+    mentions={{
+        fetchItems: (query) => users.filter((u) => u.label.includes(query)),
+    }}
+/>
+```
+
 ## Callbacks
 
 | Prop | Type | Default | Description |

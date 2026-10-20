@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- **@Mentions.** New `mentions` prop (`MentionOptions`) shows a suggestion popup below the caret when the trigger (default `@`) is typed. Suggestions come from `fetchItems(query)` (sync or async, stale results dropped) and can be rendered via `renderItem`. Arrow keys navigate, Enter/Tab insert, Escape closes. Mentions are inserted as `<span class="rte-mention" data-mention-id="…">@Label</span>` (atomic via `contenteditable="false"` inside the editor; stripped on export), serialised as `{ type: "mention", attributes: { id, label } }`, survive HTML import/export, paste (sanitizer allows `data-mention-id`) and Clear Formatting, and are emitted as plain text in Markdown export. See [docs/mentions.md](./docs/mentions.md).
+
+### New exports
+
+- `extractMentions(content)` — collects all mention nodes (`{ id, label }`) from `EditorContent`.
+- `createMentionElement(item, trigger?)` — builds the mention DOM element used by the editor.
+- Types `MentionItem`, `MentionOptions`.
+
 ## 0.3.0
 
 ### Bug fixes
