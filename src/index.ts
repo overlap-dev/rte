@@ -53,6 +53,9 @@ export {
 // DOM utilities
 export { findClosestCheckboxList, isCheckboxList } from "./utils/dom";
 
+// Mentions
+export { createMentionElement, extractMentions } from "./utils/mentions";
+
 // Checkbox utilities
 export { ensureAllCheckboxes } from "./utils/checkbox";
 

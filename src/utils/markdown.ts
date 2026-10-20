@@ -293,6 +293,8 @@ function renderInlineNode(node: EditorNode): string {
         }
         case "image":
             return renderImage(node);
+        case "mention":
+            return escapeMd(node.attributes?.label ?? "");
         case "underline":
         case "u":
             return `<u>${renderInline(node.children ?? [])}</u>`;

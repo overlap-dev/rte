@@ -64,7 +64,7 @@ export { EditorSettings, defaultEditorSettings, buildPluginsFromSettings, BuildP
 ## Types
 
 ```typescript
-export { Plugin, EditorAPI, EditorContent, EditorNode, EditorProps, ButtonProps, CustomRenderer } from "./types";
+export { Plugin, EditorAPI, EditorContent, EditorNode, EditorProps, ButtonProps, CustomRenderer, MentionItem, MentionOptions } from "./types";
 export type { LinkCustomField } from "./plugins/linkDialog";
 export type { BlockFormatOptions } from "./plugins/blockFormat";
 export type { HistoryEntry } from "./utils/history";
@@ -97,6 +97,9 @@ export { isCheckboxList, findClosestCheckboxList } from "./utils/dom";
 
 // Checkbox utilities
 export { ensureAllCheckboxes } from "./utils/checkbox";
+
+// Mentions
+export { extractMentions, createMentionElement } from "./utils/mentions";
 ```
 
 ## Default Export

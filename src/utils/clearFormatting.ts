@@ -70,6 +70,8 @@ export function clearFormatting(selection: Selection): void {
 
         for (const el of candidates) {
             const tag = el.tagName.toLowerCase();
+            // Mentions are atomic: keep the span (and its data attribute).
+            if (el.hasAttribute("data-mention-id")) continue;
             if (INLINE_TAGS.has(tag)) inlineUnwrap.push(el);
             if (el.style.length > 0) stripStyle.push(el);
             if (HEADING_TAGS.has(tag)) headingsToReplace.push(el);

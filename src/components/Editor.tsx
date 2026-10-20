@@ -8,6 +8,7 @@ import React, {
 import { useCheckbox } from "../hooks/useCheckbox";
 import { useEditorEvents } from "../hooks/useEditorEvents";
 import { useEditorInit } from "../hooks/useEditorInit";
+import { useMentions } from "../hooks/useMentions";
 import { defaultPlugins } from "../plugins";
 import { createBlockFormatPlugin } from "../plugins/blockFormat";
 import {
@@ -43,6 +44,7 @@ import {
 import { buildPluginsFromSettings } from "../utils/settings";
 import { FloatingToolbar } from "./FloatingToolbar";
 import { LinkTooltip } from "./LinkTooltip";
+import { MentionPopup } from "./MentionPopup";
 import { Toolbar } from "./Toolbar";
 
 /**
@@ -164,6 +166,7 @@ export const Editor: React.FC<EditorProps> = ({
     onBlur,
     maxLength,
     showWordCount,
+    mentions,
 }) => {
     // --- Shared Refs ---
     const editorRef = useRef<HTMLDivElement>(null);
@@ -310,6 +313,14 @@ export const Editor: React.FC<EditorProps> = ({
         isUpdatingRef,
         pushToHistory,
         notifyChange,
+        getDomContent,
+    });
+
+    const mentionPopup = useMentions({
+        editorRef,
+        historyRef,
+        options: mentions,
+        enabled: !readOnly,
         getDomContent,
     });
 
@@ -953,6 +964,15 @@ export const Editor: React.FC<EditorProps> = ({
                 />
             )}
             <LinkTooltip editorElement={editorEl} />
+            {mentions && !readOnly && (
+                <MentionPopup
+                    state={mentionPopup.state}
+                    trigger={mentionPopup.trigger}
+                    renderItem={mentions.renderItem}
+                    onSelect={mentionPopup.select}
+                    onHover={mentionPopup.setActiveIndex}
+                />
+            )}
             {showWordCount && (
                 <div className="rte-word-count">
                     {wordCount.words} words &middot; {wordCount.characters}{" "}

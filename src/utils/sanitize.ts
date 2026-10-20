@@ -34,7 +34,8 @@ const REMOVE_TAGS = new Set([
 ]);
 
 /** Attributes that are always removed (event handlers, dangerous data-* attrs). */
-const REMOVE_ATTRS_PATTERN = /^on|^data-(?!(attachment-id|placeholder)$)/i;
+const REMOVE_ATTRS_PATTERN =
+    /^on|^data-(?!(attachment-id|placeholder|mention-id)$)/i;
 
 /** Specific dangerous attribute names. */
 const REMOVE_ATTRS = new Set(["srcdoc", "formaction", "xlink:href", "ping"]);

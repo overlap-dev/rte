@@ -44,6 +44,22 @@ const ALLOWED_CONTENT_TAGS = new Set([
     "font",
 ]);
 
+/** Node types that must live inside a block; bare ones at the root get wrapped in <p>. */
+const ROOT_INLINE_TYPES = new Set([
+    "text",
+    "mention",
+    "bold",
+    "italic",
+    "underline",
+    "strikethrough",
+    "subscript",
+    "superscript",
+    "code",
+    "link",
+    "span",
+    "br",
+]);
+
 /** Checks if an attribute key is safe to set on a DOM element. */
 function isSafeAttribute(key: string): boolean {
     const lower = key.toLowerCase();
@@ -278,6 +294,19 @@ export function domToContent(element: HTMLElement): EditorContent {
             };
         }
 
+        // Mentions: <span class="rte-mention" data-mention-id="…">@Name</span>
+        // Must run before the generic span handling below, which flattens
+        // spans without semantic styles into plain text.
+        if (tagName === "span" && el.hasAttribute("data-mention-id")) {
+            return {
+                type: "mention",
+                attributes: {
+                    id: el.getAttribute("data-mention-id") || "",
+                    label: el.textContent || "",
+                },
+            };
+        }
+
         // Inline elements
         if (
             [
@@ -464,16 +493,22 @@ export function domToContent(element: HTMLElement): EditorContent {
         return null;
     }
 
-    // Process all child nodes of the editor element
+    // Process all child nodes of the editor element. Consecutive bare inline
+    // nodes (text, mentions, bold, …) at the root are grouped into one
+    // paragraph so e.g. "Hi <mention> there" stays a single block.
+    let inlineRun: EditorNode[] | null = null;
     Array.from(element.childNodes).forEach((node) => {
         const processed = processNode(node);
-        if (processed) {
-            // Wrap bare text nodes in a paragraph
-            if (processed.type === "text") {
-                blocks.push({ type: "p", children: [processed] });
-            } else {
-                blocks.push(processed);
+        if (!processed) return;
+        if (ROOT_INLINE_TYPES.has(processed.type)) {
+            if (!inlineRun) {
+                inlineRun = [];
+                blocks.push({ type: "p", children: inlineRun });
             }
+            inlineRun.push(processed);
+        } else {
+            inlineRun = null;
+            blocks.push(processed);
         }
     });
 
@@ -526,6 +561,15 @@ export function contentToDOM(
             }
             img.className = "rte-image";
             return img;
+        }
+
+        if (node.type === "mention") {
+            const span = document.createElement("span");
+            span.className = "rte-mention";
+            span.setAttribute("data-mention-id", node.attributes?.id || "");
+            span.setAttribute("contenteditable", "false");
+            span.textContent = node.attributes?.label || "";
+            return span;
         }
 
         const tagMap: Record<string, string> = {
@@ -657,6 +701,11 @@ export function createEmptyContent(): EditorContent {
 export function contentToHTML(content: EditorContent): string {
     const tempDiv = document.createElement("div");
     contentToDOM(content, tempDiv);
+    // contenteditable="false" is an editor-only concern; keep exported HTML
+    // clean (it is re-applied by contentToDOM on import).
+    tempDiv
+        .querySelectorAll("[data-mention-id]")
+        .forEach((el) => el.removeAttribute("contenteditable"));
     return tempDiv.innerHTML;
 }
 
